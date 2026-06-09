@@ -95,18 +95,27 @@ const mockUsers = [
   },
 ]
 
-const mockPosts = Array.from({ length: 24 }, (_, i) => ({
-  id: i + 1,
-  author: mockUsers[Math.floor(Math.random() * mockUsers.length)],
-  timestamp: `${Math.floor(Math.random() * 23) + 1}h ago`,
-  content: `Project Showcase #${i + 1}`,
-  image: `Project UI Design ${i + 1}`,
-  upvotes: Math.floor(Math.random() * 5000) + 100,
-  downvotes: Math.floor(Math.random() * 50),
-  comments: Math.floor(Math.random() * 200),
-  isSponsored: (i + 1) % 8 === 0,
-  isFeatured: i < 8,
-}))
+const mockPosts = Array.from({ length: 24 }, (_, i) => {
+  // Use deterministic calculations instead of Math.random() to avoid hydration mismatches
+  const userIndex = i % mockUsers.length
+  const hours = (i % 23) + 1
+  const upvotesSeed = (i * 7919) % 5000 + 100
+  const downvotesSeed = (i * 1337) % 50
+  const commentsSeed = (i * 4649) % 200
+  
+  return {
+    id: i + 1,
+    author: mockUsers[userIndex],
+    timestamp: `${hours}h ago`,
+    content: `Project Showcase #${i + 1}`,
+    image: `Project UI Design ${i + 1}`,
+    upvotes: upvotesSeed,
+    downvotes: downvotesSeed,
+    comments: commentsSeed,
+    isSponsored: (i + 1) % 8 === 0,
+    isFeatured: i < 8,
+  }
+})
 
 const mockStats = {
   downloads: '12,450',
