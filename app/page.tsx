@@ -70,6 +70,11 @@ const mockUsers = [
 
 const mockPosts = Array.from({ length: 20 }, (_, i) => {
   const isAd = (i + 1) % 8 === 0
+  const timestamps = ['2h ago', '4h ago', '6h ago', '8h ago', '12h ago', '1h ago', '3h ago', '5h ago', '7h ago', '9h ago', '11h ago', '13h ago', '15h ago', '18h ago', '20h ago', '22h ago', '23h ago', '19h ago', '17h ago', '14h ago']
+  const upvoteCounts = [2450, 3200, 1800, 4100, 5200, 1950, 3400, 2100, 4500, 1650, 2800, 3900, 1200, 5100, 2300, 3700, 4200, 1500, 3500, 2900]
+  const downvoteCounts = [45, 120, 60, 95, 180, 55, 140, 70, 160, 50, 85, 130, 40, 190, 75, 110, 155, 65, 135, 90]
+  const commentCounts = [230, 450, 280, 520, 380, 210, 490, 310, 540, 190, 360, 420, 150, 580, 290, 480, 350, 220, 510, 340]
+  
   return {
     id: `post-${i}`,
     user: mockUsers[i % mockUsers.length],
@@ -77,10 +82,10 @@ const mockPosts = Array.from({ length: 20 }, (_, i) => {
       ? 'Advanced Caching Strategies for Modern Web Apps'
       : ['Neural Network UI Framework', 'Real-time Collab Editor', 'AI Art Generator', 'Quantum Computing Sim'][i % 4],
     description: isAd ? 'Sponsored: Learn about Redis, Memcached, and edge caching.' : 'Check out my latest project',
-    timestamp: `${Math.floor(Math.random() * 23) + 1}h ago`,
-    upvotes: Math.floor(Math.random() * 5000) + 100,
-    downvotes: Math.floor(Math.random() * 200) + 10,
-    comments: Math.floor(Math.random() * 500) + 20,
+    timestamp: timestamps[i],
+    upvotes: upvoteCounts[i],
+    downvotes: downvoteCounts[i],
+    comments: commentCounts[i],
     isSponsored: isAd,
     imageColor: isAd ? 'from-blue-600 to-purple-600' : ['from-cyan-500 to-blue-600', 'from-purple-500 to-pink-600', 'from-green-500 to-cyan-600', 'from-orange-500 to-red-600'][i % 4],
   }
@@ -101,10 +106,38 @@ const mockAnalytics = {
   totalUpvotes: 156800,
   storageUsed: 1.2,
   storageFree: 5.0,
-  chartData: Array.from({ length: 30 }, (_, i) => ({
-    day: i + 1,
-    value: Math.floor(Math.random() * 5000) + 2000,
-  })),
+  chartData: [
+    { day: 1, value: 3245 },
+    { day: 2, value: 3890 },
+    { day: 3, value: 2950 },
+    { day: 4, value: 4120 },
+    { day: 5, value: 3670 },
+    { day: 6, value: 4890 },
+    { day: 7, value: 3120 },
+    { day: 8, value: 4560 },
+    { day: 9, value: 2890 },
+    { day: 10, value: 5120 },
+    { day: 11, value: 3450 },
+    { day: 12, value: 4780 },
+    { day: 13, value: 3340 },
+    { day: 14, value: 4950 },
+    { day: 15, value: 2670 },
+    { day: 16, value: 5230 },
+    { day: 17, value: 3890 },
+    { day: 18, value: 4340 },
+    { day: 19, value: 3560 },
+    { day: 20, value: 5670 },
+    { day: 21, value: 2980 },
+    { day: 22, value: 4120 },
+    { day: 23, value: 3750 },
+    { day: 24, value: 5340 },
+    { day: 25, value: 3210 },
+    { day: 26, value: 4890 },
+    { day: 27, value: 3945 },
+    { day: 28, value: 5120 },
+    { day: 29, value: 2850 },
+    { day: 30, value: 4670 },
+  ],
 }
 
 const mockProfileProjects = [
@@ -474,23 +507,36 @@ export default function NodeioApp() {
               <div className="glass border-primary/30">
                 <div className="h-40 bg-gradient-to-r from-primary/30 to-accent/30 relative overflow-hidden">
                   <div className="absolute inset-0 opacity-30">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute rounded-full blur-xl"
-                        style={{
-                          width: `${Math.random() * 300 + 200}px`,
-                          height: `${Math.random() * 300 + 200}px`,
-                          background: `radial-gradient(circle, ${
-                            i % 2 === 0
-                              ? 'rgba(0, 212, 255, 0.3)'
-                              : 'rgba(168, 85, 247, 0.3)'
-                          } 0%, transparent 70%)`,
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                      ></div>
-                    ))}
+                    <div
+                      className="absolute rounded-full blur-xl"
+                      style={{
+                        width: '280px',
+                        height: '280px',
+                        background: 'radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%)',
+                        left: '10%',
+                        top: '20%',
+                      }}
+                    ></div>
+                    <div
+                      className="absolute rounded-full blur-xl"
+                      style={{
+                        width: '320px',
+                        height: '320px',
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%)',
+                        left: '60%',
+                        top: '10%',
+                      }}
+                    ></div>
+                    <div
+                      className="absolute rounded-full blur-xl"
+                      style={{
+                        width: '250px',
+                        height: '250px',
+                        background: 'radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%)',
+                        left: '40%',
+                        top: '50%',
+                      }}
+                    ></div>
                   </div>
                 </div>
 
