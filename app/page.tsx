@@ -341,24 +341,24 @@ function FacesFeedView() {
   return (
     <>
       {/* Grid View */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {mockPosts.map((post, index) => (
           <button
             key={post.id}
             onClick={() => setSelectedIndex(index)}
-            className="group relative overflow-hidden rounded-lg aspect-video cursor-pointer"
+            className="group relative overflow-hidden rounded-xl aspect-square cursor-pointer"
           >
             {/* Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 group-hover:from-purple-600/40 group-hover:to-cyan-600/40 transition-all" />
             
             {/* Content */}
-            <div className="relative w-full h-full flex flex-col items-center justify-center gap-3 p-4 border border-white/10 group-hover:border-white/20 rounded-lg transition-all">
-              <span className="text-4xl">{post.image}</span>
+            <div className="relative w-full h-full flex flex-col items-center justify-center gap-6 p-8 border border-white/10 group-hover:border-white/20 rounded-xl transition-all">
+              <span className="text-8xl">{post.image}</span>
               <div className="text-center">
-                <p className="font-semibold text-white group-hover:text-cyan-300 transition-colors">{post.author.handle}</p>
-                <p className="text-sm text-white/60">{post.content.substring(0, 50)}...</p>
+                <p className="text-xl font-semibold text-white group-hover:text-cyan-300 transition-colors">{post.author.handle}</p>
+                <p className="text-sm text-white/60 mt-2">{post.content.substring(0, 60)}...</p>
               </div>
-              <div className="flex gap-2 text-xs text-white/40">
+              <div className="flex gap-4 text-sm text-white/40">
                 <span>{post.upvotes} likes</span>
                 <span>•</span>
                 <span>{post.comments} comments</span>
