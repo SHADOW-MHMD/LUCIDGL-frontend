@@ -112,7 +112,7 @@ const mockPosts = Array.from({ length: 24 }, (_, i) => {
     upvotes: upvotesSeed,
     downvotes: downvotesSeed,
     comments: commentsSeed,
-    isSponsored: (i + 1) % 8 === 0,
+    isSponsored: false,
     isFeatured: i < 8,
   }
 })
@@ -277,7 +277,7 @@ function PostCard({ post }: { post: (typeof mockPosts)[number] }) {
       {post.isSponsored && (
         <div className="bg-gradient-to-r from-amber-600/20 to-orange-600/20 border-b border-amber-500/30 px-4 py-2 flex items-center gap-2">
           <Flame size={14} className="text-amber-400" />
-          <span className="text-xs font-bold text-amber-400">TRENDING</span>
+          <span className="text-xs font-bold text-amber-400">SPONSORED</span>
         </div>
       )}
 
@@ -468,7 +468,7 @@ function FullscreenProjectView({
               {currentPost.isSponsored && (
                 <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
                   <Flame size={14} className="text-amber-400" />
-                  <span className="text-xs font-bold text-amber-400">TRENDING</span>
+                  <span className="text-xs font-bold text-amber-400">SPONSORED</span>
                 </div>
               )}
             </div>
