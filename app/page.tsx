@@ -336,63 +336,184 @@ function PostCard({ post }: { post: (typeof mockPosts)[number] }) {
 }
 
 function FacesFeedView() {
-  const [displayedPosts, setDisplayedPosts] = useState(mockPosts.slice(0, 5))
-  const [isLoading, setIsLoading] = useState(false)
-  const observerTarget = useRef(null)
-
-  // Infinite scroll handler
-  const loadMorePosts = useCallback(() => {
-    setIsLoading(true)
-    // Simulate network delay
-    setTimeout(() => {
-      setDisplayedPosts((prev) => {
-        const allPosts = [...prev, ...mockPosts.slice(prev.length % mockPosts.length, (prev.length % mockPosts.length) + 3)]
-        return allPosts.slice(0, prev.length + 3)
-      })
-      setIsLoading(false)
-    }, 500)
-  }, [])
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading) {
-          loadMorePosts()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current)
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current)
-      }
-    }
-  }, [isLoading, loadMorePosts])
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      {/* Scrolling Feed */}
-      {displayedPosts.map((post) => (
-        <PostCard key={`${post.id}-${displayedPosts.indexOf(post)}`} post={post} />
-      ))}
+    <>
+      {/* Grid View */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {mockPosts.map((post, index) => (
+          <button
+            key={post.id}
+            onClick={() => setSelectedIndex(index)}
+            className="group relative overflow-hidden rounded-lg aspect-video cursor-pointer"
+          >
+            {/* Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 group-hover:from-purple-600/40 group-hover:to-cyan-600/40 transition-all" />
+            
+            {/* Content */}
+            <div className="relative w-full h-full flex flex-col items-center justify-center gap-3 p-4 border border-white/10 group-hover:border-white/20 rounded-lg transition-all">
+              <span className="text-4xl">{post.image}</span>
+              <div className="text-center">
+                <p className="font-semibold text-white group-hover:text-cyan-300 transition-colors">{post.author.handle}</p>
+                <p className="text-sm text-white/60">{post.content.substring(0, 50)}...</p>
+              </div>
+              <div className="flex gap-2 text-xs text-white/40">
+                <span>{post.upvotes} likes</span>
+                <span>•</span>
+                <span>{post.comments} comments</span>
+              </div>
+            </div>
 
-      {/* Loading indicator and infinite scroll trigger */}
-      <div ref={observerTarget} className="py-8 flex justify-center">
-        {isLoading ? (
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+            {/* Hover Overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all" />
+          </button>
+        ))}
+      </div>
+
+      {/* Fullscreen Modal */}
+      {selectedIndex !== null && (
+        <FullscreenProjectView
+          initialIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+        />
+      )}
+    </>
+  )
+}
+
+function FullscreenProjectView({
+  initialIndex,
+  onClose,
+}: {
+  initialIndex: number
+  onClose: () => void
+}) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const lastScrollRef = useRef(0)
+
+  const currentPost = mockPosts[currentIndex % mockPosts.length]
+
+  // Handle wheel scroll and keyboard navigation
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const now = Date.now()
+      if (now - lastScrollRef.current < 600) return
+
+      if (e.deltaY > 0) {
+        // Scrolling down
+        setCurrentIndex((prev) => (prev + 1) % mockPosts.length)
+      } else {
+        // Scrolling up
+        setCurrentIndex((prev) => (prev - 1 + mockPosts.length) % mockPosts.length)
+      }
+      lastScrollRef.current = now
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      } else if (e.key === 'ArrowDown') {
+        setCurrentIndex((prev) => (prev + 1) % mockPosts.length)
+      } else if (e.key === 'ArrowUp') {
+        setCurrentIndex((prev) => (prev - 1 + mockPosts.length) % mockPosts.length)
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+      {/* Close Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={onClose}
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-smooth"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <div className="w-full max-w-4xl mx-auto px-4 flex flex-col gap-6">
+          {/* Project Display */}
+          <div className="aspect-video bg-gradient-to-br from-purple-600/30 to-cyan-600/30 rounded-lg border border-white/10 flex items-center justify-center overflow-hidden">
+            <span className="text-8xl">{currentPost.image}</span>
           </div>
-        ) : (
-          <p className="text-white/40 text-sm">Scroll for more</p>
-        )}
+
+          {/* Project Info */}
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-white/10">
+                    {currentPost.author.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">{currentPost.author.handle}</p>
+                    <p className="text-sm text-white/40">{currentPost.timestamp}</p>
+                  </div>
+                </div>
+              </div>
+              {currentPost.isSponsored && (
+                <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                  <Flame size={14} className="text-amber-400" />
+                  <span className="text-xs font-bold text-amber-400">TRENDING</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-lg text-white/80 leading-relaxed">{currentPost.content}</p>
+
+            {/* Engagement Actions */}
+            <div className="flex gap-4 pt-4 border-t border-white/10">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-cyan-300 transition-smooth">
+                <ThumbsUp size={18} />
+                <span className="text-sm font-medium">{currentPost.upvotes} Likes</span>
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-purple-300 transition-smooth">
+                <MessageCircle size={18} />
+                <span className="text-sm font-medium">{currentPost.comments} Comments</span>
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-orange-300 transition-smooth">
+                <Flame size={18} />
+                <span className="text-sm font-medium">Share</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Indicators */}
+      <div className="px-4 py-6 flex items-center justify-center gap-3">
+        <div className="text-white/40 text-sm">{currentIndex + 1}</div>
+        <div className="flex gap-1">
+          {mockPosts.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`h-1 rounded-full transition-all ${
+                index === currentIndex ? 'bg-cyan-400 w-8' : 'bg-white/20 w-2 hover:bg-white/40'
+              }`}
+            />
+          ))}
+        </div>
+        <div className="text-white/40 text-sm">/ {mockPosts.length}</div>
+      </div>
+
+      {/* Scroll Hint */}
+      <div className="px-4 py-4 text-center text-white/40 text-sm">
+        Scroll or use arrow keys to navigate • Press ESC to close
       </div>
     </div>
   )
