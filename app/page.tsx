@@ -268,7 +268,7 @@ function TopBar({ isMobileOpen, setIsMobileOpen }: any) {
   )
 }
 
-function PostCard({ post }: any) {
+function PostCard({ post }: { post: (typeof mockPosts)[number] }) {
   return (
     <div className={`glass rounded-xl overflow-hidden transition-smooth hover:bg-white/10 ${post.isSponsored ? 'border-amber-500/30' : ''}`}>
       {post.isSponsored && (
