@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Menu,
   X,
@@ -269,59 +269,131 @@ function TopBar({ isMobileOpen, setIsMobileOpen }: any) {
 }
 
 function PostCard({ post }: { post: (typeof mockPosts)[number] }) {
+  const [isLiked, setIsLiked] = useState(false)
+
   return (
-    <div className={`glass rounded-xl overflow-hidden transition-smooth hover:bg-white/10 ${post.isSponsored ? 'border-amber-500/30' : ''}`}>
+    <div className={`glass rounded-lg overflow-hidden transition-smooth hover:bg-white/[0.08] border border-white/5 ${post.isSponsored ? 'border-amber-500/30' : ''}`}>
+      {/* Sponsored Badge */}
       {post.isSponsored && (
         <div className="bg-gradient-to-r from-amber-600/20 to-orange-600/20 border-b border-amber-500/30 px-4 py-2 flex items-center gap-2">
-          <span className="text-xs font-bold text-amber-400">SPONSORED</span>
+          <Flame size={14} className="text-amber-400" />
+          <span className="text-xs font-bold text-amber-400">TRENDING</span>
         </div>
       )}
 
-      <div className="aspect-video bg-gradient-to-br from-white/5 to-white/[0.02] border-b border-white/10 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-gradient-to-br from-purple-600/20 to-cyan-600/20" />
-        <span className="text-white/40 text-sm font-medium relative z-10">
-          {post.isSponsored ? 'Ad: ' : ''}{post.image}
-        </span>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-white/10">
+      {/* Author Info Bar */}
+      <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-base bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-white/10">
             {post.author.avatar}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{post.author.handle}</p>
+            <p className="text-sm font-semibold text-white">{post.author.handle}</p>
             <p className="text-xs text-white/40">{post.timestamp}</p>
           </div>
         </div>
+      </div>
 
-        <p className="text-sm text-white/70 mb-4">{post.content}</p>
+      {/* Content */}
+      <div className="px-4 py-3 border-b border-white/5">
+        <p className="text-sm text-white/80 leading-relaxed">{post.content}</p>
+      </div>
 
-        <div className="flex items-center gap-4 pt-3 border-t border-white/10 text-white/40">
-          <button className="flex items-center gap-1 hover:text-cyan-400 transition-smooth text-xs">
-            <ThumbsUp size={16} />
-            {post.upvotes}
-          </button>
-          <button className="flex items-center gap-1 hover:text-red-400 transition-smooth text-xs">
-            <ThumbsDown size={16} />
-            {post.downvotes}
-          </button>
-          <button className="flex items-center gap-1 hover:text-purple-400 transition-smooth text-xs">
-            <MessageCircle size={16} />
-            {post.comments}
-          </button>
-        </div>
+      {/* Media Preview */}
+      <div className="aspect-video bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center relative overflow-hidden border-b border-white/5">
+        <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-purple-600/30 to-cyan-600/30" />
+        <span className="text-white/30 text-2xl relative z-10">{post.image}</span>
+      </div>
+
+      {/* Engagement Stats */}
+      <div className="px-4 py-2 flex items-center justify-between text-xs text-white/40 border-b border-white/5">
+        <span>{post.upvotes} likes</span>
+        <span>{post.comments} comments</span>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="px-4 py-3 flex items-center gap-1 divide-x divide-white/10 justify-around">
+        <button
+          onClick={() => setIsLiked(!isLiked)}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded transition-smooth ${
+            isLiked ? 'text-cyan-400 bg-cyan-400/10' : 'text-white/40 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <ThumbsUp size={16} />
+          <span className="text-xs font-medium">Like</span>
+        </button>
+        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded text-white/40 hover:text-white hover:bg-white/5 transition-smooth">
+          <MessageCircle size={16} />
+          <span className="text-xs font-medium">Comment</span>
+        </button>
+        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded text-white/40 hover:text-white hover:bg-white/5 transition-smooth">
+          <Flame size={16} />
+          <span className="text-xs font-medium">Share</span>
+        </button>
       </div>
     </div>
   )
 }
 
 function FacesFeedView() {
+  const [displayedPosts, setDisplayedPosts] = useState(mockPosts.slice(0, 5))
+  const [isLoading, setIsLoading] = useState(false)
+  const observerTarget = useRef(null)
+
+  // Infinite scroll handler
+  const loadMorePosts = useCallback(() => {
+    setIsLoading(true)
+    // Simulate network delay
+    setTimeout(() => {
+      setDisplayedPosts((prev) => {
+        const allPosts = [...prev, ...mockPosts.slice(prev.length % mockPosts.length, (prev.length % mockPosts.length) + 3)]
+        return allPosts.slice(0, prev.length + 3)
+      })
+      setIsLoading(false)
+    }, 500)
+  }, [])
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading) {
+          loadMorePosts()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current)
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current)
+      }
+    }
+  }, [isLoading, loadMorePosts])
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {mockPosts.map((post) => (
-        <PostCard key={post.id} post={post} />
+    <div className="max-w-2xl mx-auto space-y-4">
+      {/* Scrolling Feed */}
+      {displayedPosts.map((post) => (
+        <PostCard key={`${post.id}-${displayedPosts.indexOf(post)}`} post={post} />
       ))}
+
+      {/* Loading indicator and infinite scroll trigger */}
+      <div ref={observerTarget} className="py-8 flex justify-center">
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+          </div>
+        ) : (
+          <p className="text-white/40 text-sm">Scroll for more</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -587,22 +659,26 @@ export default function NodeioApp() {
       <div className="md:ml-64 flex flex-col min-h-screen">
         <TopBar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
 
-        <main className="flex-1 p-4 md:p-8 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-white">
-                {navLinks.find((l) => l.id === currentView)?.label || 'Nodeio'}
-              </h2>
-              <p className="text-white/40 text-sm mt-1">
-                {currentView === 'feed' && 'Explore cutting-edge developer projects'}
-                {currentView === 'sketchbook' && 'Premium showcase of elite community work'}
-                {currentView === 'leaderboard' && 'Top developers and community rankings'}
-                {currentView === 'analytics' && 'Your portfolio performance metrics'}
-                {currentView === 'profile' && 'Your developer profile and projects'}
-              </p>
+        <main className="flex-1 overflow-auto">
+          <div className="w-full">
+            <div className="px-4 md:px-8 pt-4 md:pt-8 max-w-7xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-white">
+                  {navLinks.find((l) => l.id === currentView)?.label || 'Nodeio'}
+                </h2>
+                <p className="text-white/40 text-sm mt-1">
+                  {currentView === 'feed' && 'Explore cutting-edge developer projects'}
+                  {currentView === 'sketchbook' && 'Premium showcase of elite community work'}
+                  {currentView === 'leaderboard' && 'Top developers and community rankings'}
+                  {currentView === 'analytics' && 'Your portfolio performance metrics'}
+                  {currentView === 'profile' && 'Your developer profile and projects'}
+                </p>
+              </div>
             </div>
 
-            {renderView()}
+            <div className={`${currentView === 'feed' ? 'max-w-2xl mx-auto px-4 md:px-8' : 'max-w-7xl mx-auto px-4 md:px-8'} pb-8`}>
+              {renderView()}
+            </div>
           </div>
         </main>
       </div>
