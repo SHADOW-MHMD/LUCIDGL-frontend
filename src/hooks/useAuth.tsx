@@ -40,6 +40,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await firebaseUser.getIdToken();
       const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+      
+      const generatedUsername = firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User";
+      const email = firebaseUser.email || "no-email@provided.com";
 
       const res = await fetch(`${apiUrl}/api/users/register`, {
         method: "POST",
@@ -49,14 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           id: firebaseUser.uid,
-          username: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
-          email: firebaseUser.email,
+          username: generatedUsername,
+          email: email
         }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        // If unique constraint fails, it just means they're already registered, which is fine
+        const data = await res.json().catch(() => ({ error: "Failed to parse error response" }));
         if (data.error !== "User parameters already registered") {
           console.error("Failed to sync user:", data.error);
         }
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Redirect sign-in error:", error);
+        setLoading(false);
       }
     };
 
@@ -112,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Sign-in error:", error);
+      setLoading(false);
     }
   };
 
