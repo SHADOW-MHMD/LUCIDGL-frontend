@@ -5,8 +5,6 @@ import {
   User as FirebaseUser,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
   signOut as firebaseSignOut,
 } from "firebase/auth";
@@ -21,14 +19,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  loading: true,
+  loading: false,
   signIn: async () => {},
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -73,20 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isMounted) return;
 
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          await syncUserWithBackend(result.user);
-        }
-      } catch (error) {
-        console.error("Redirect sign-in error:", error);
-        setLoading(false);
-      }
-    };
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setLoading(true);
         await syncUserWithBackend(firebaseUser);
         setUser(firebaseUser);
       } else {
@@ -95,28 +82,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    handleRedirectResult();
-
     return () => unsubscribe();
   }, [isMounted, syncUserWithBackend]);
 
   const signIn = async () => {
     const provider = new GoogleAuthProvider();
-    const isMobileOrFirefox = /Mobi|Android|Firefox/i.test(navigator.userAgent);
+    setLoading(true);
 
-    try {
-      if (isMobileOrFirefox) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        const result = await signInWithPopup(auth, provider);
-        setLoading(true);
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
         await syncUserWithBackend(result.user);
         setUser(result.user);
-      }
-    } catch (error) {
-      console.error("Sign-in error:", error);
-      setLoading(false);
-    }
+      })
+      .catch((error) => {
+        console.error("Sign-in error:", error);
+        setLoading(false);
+      });
   };
 
   const signOut = async () => {
