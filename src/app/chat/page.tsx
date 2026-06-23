@@ -16,7 +16,7 @@ export default function ChatPage() {
     const fetchMessages = async () => {
       if (!user) return;
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8787";
+        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
         const res = await fetch(`${apiUrl}/api/messages/channel/general`);
         if (res.ok) {
           const data = await res.json();
@@ -54,7 +54,7 @@ export default function ChatPage() {
     // Background Sync
     try {
       const token = await user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8787";
+      const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
       
       await fetch(`${apiUrl}/api/messages/send`, {
         method: "POST",

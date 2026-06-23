@@ -13,7 +13,7 @@ export default function ReelsPage() {
   useEffect(() => {
     const fetchReels = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8787";
+        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
         const res = await fetch(`${apiUrl}/api/feed/reels`);
         if (res.ok) {
           const data = await res.json();
