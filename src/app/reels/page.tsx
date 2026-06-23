@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Heart, MessageCircle, Share2, MoreVertical, ShieldAlert } from "lucide-react";
+import type { FacePost } from "@/types";
+
+export default function ReelsPage() {
+  const { user } = useAuth();
+  const [reels, setReels] = useState<FacePost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReels = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8787";
+        const res = await fetch(`${apiUrl}/api/feed/reels`);
+        if (res.ok) {
+          const data = await res.json();
+          setReels(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reels:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReels();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-t-blue-500 border-white/10 rounded-full animate-spin"></div>
+        <p className="text-white/60 animate-pulse">Loading Feed...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
+        <ShieldAlert className="w-16 h-16 text-red-400 opacity-50" />
+        <h2 className="text-2xl font-bold text-white/90">Authentication Required</h2>
+        <p className="text-slate-400">You must be signed in to view the media feed.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center py-6">
+      <div className="w-full max-w-md flex flex-col gap-8 snap-y snap-mandatory h-[calc(100vh-120px)] overflow-y-auto pb-20 no-scrollbar">
+        {reels.length === 0 ? (
+          <div className="text-center text-slate-400 mt-20">No media available.</div>
+        ) : (
+          reels.map((reel) => (
+            <ReelCard key={reel.id} reel={reel} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReelCard({ reel }: { reel: FacePost }) {
+  const videoRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [likes, setLikes] = useState(reel.like_count);
+  const [isLiked, setIsLiked] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.6 }
+    );
+
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleLike = () => {
+    // Optimistic UI update
+    if (isLiked) {
+      setLikes((l) => Math.max(0, l - 1));
+      setIsLiked(false);
+    } else {
+      setLikes((l) => l + 1);
+      setIsLiked(true);
+    }
+    // Fire-and-forget fetch to backend would go here
+  };
+
+  return (
+    <div className="snap-center shrink-0 w-full aspect-[9/16] rounded-[2.5rem] bg-slate-900 border border-white/10 overflow-hidden relative shadow-2xl flex flex-col">
+      {/* Mock Video Container */}
+      <div 
+        ref={videoRef}
+        className={`absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-700 flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-50'}`}
+      >
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
+        {isVisible ? (
+          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center animate-pulse">
+            <span className="text-white/70 text-xs font-mono">PLAYING</span>
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center">
+            <span className="text-white/30 text-xs font-mono">PAUSED</span>
+          </div>
+        )}
+      </div>
+
+      {/* Overlays */}
+      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex justify-between items-end">
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20"></div>
+            <span className="font-bold text-white shadow-sm">@{reel.username || "anonymous"}</span>
+            {reel.badge_tier && (
+              <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold text-white tracking-wider">
+                {reel.badge_tier}
+              </span>
+            )}
+          </div>
+          <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.hf_repo_path}`}</p>
+        </div>
+
+        <div className="flex flex-col gap-6 items-center">
+          <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
+            <div className={`p-3 rounded-full backdrop-blur-md transition-all ${isLiked ? 'bg-red-500/20 text-red-500' : 'bg-black/20 text-white group-hover:bg-white/10'}`}>
+              <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500' : ''}`} />
+            </div>
+            <span className="text-white font-medium text-xs drop-shadow-md">{likes}</span>
+          </button>
+          
+          <button className="flex flex-col items-center gap-1 group">
+            <div className="p-3 rounded-full bg-black/20 text-white backdrop-blur-md transition-all group-hover:bg-white/10">
+              <MessageCircle className="w-6 h-6" />
+            </div>
+            <span className="text-white font-medium text-xs drop-shadow-md">0</span>
+          </button>
+
+          <button className="flex flex-col items-center gap-1 group">
+            <div className="p-3 rounded-full bg-black/20 text-white backdrop-blur-md transition-all group-hover:bg-white/10">
+              <Share2 className="w-6 h-6" />
+            </div>
+          </button>
+
+          <button className="p-2 text-white/80 hover:text-white transition-colors">
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
