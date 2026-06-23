@@ -12,7 +12,6 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initial fetch of messages for the 'general' channel
     const fetchMessages = async () => {
       if (!user) return;
       try {
@@ -26,7 +25,14 @@ export default function ChatPage() {
         console.error("Failed to fetch messages:", error);
       }
     };
+    
     fetchMessages();
+    
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
