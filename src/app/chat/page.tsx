@@ -1,82 +1,131 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Send, Sparkles } from "lucide-react";
-import type { Message } from "@/types";
+import { ShieldAlert, Send, Sparkles, Loader2 } from "lucide-react";
+import type { ChatMessage } from "@/types";
+
+const API_URL = "https://lucid-gl.muhammed1515mishal.workers.dev";
+const POLL_INTERVAL_MS = 3000;
+const CHANNEL = "general";
 
 export default function ChatPage() {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const knownIdsRef = useRef(new Set<string>());
+  const isInitialLoadRef = useRef(true);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!user) return;
-      try {
-        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
-        const res = await fetch(`${apiUrl}/api/messages/channel/general`);
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data);
+  // Authenticated fetch helper
+  const authFetch = useCallback(
+    async (url: string, options?: RequestInit) => {
+      if (!user) throw new Error("Not authenticated");
+      const token = await user.getIdToken();
+      return fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...options?.headers,
+        },
+      });
+    },
+    [user]
+  );
+
+  // Sync messages from KV-backed endpoint
+  const syncMessages = useCallback(async () => {
+    if (!user || authLoading) return;
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/chat/sync/${CHANNEL}`
+      );
+      if (!res.ok) return;
+
+      const incoming: ChatMessage[] = await res.json();
+
+      setMessages((prev) => {
+        // Build a merged list: keep optimistic messages that aren't in the server payload yet
+        const serverIds = new Set(incoming.map((m) => m.id));
+        const optimisticOnly = prev.filter(
+          (m) => !serverIds.has(m.id) && !knownIdsRef.current.has(m.id)
+        );
+
+        // Update the known IDs set
+        for (const m of incoming) {
+          knownIdsRef.current.add(m.id);
         }
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
-      }
-    };
-    
-    fetchMessages();
-    
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 3000);
+
+        return [...incoming, ...optimisticOnly];
+      });
+
+      isInitialLoadRef.current = false;
+    } catch (error) {
+      console.error("Chat sync failed:", error);
+    }
+  }, [user, authLoading, authFetch]);
+
+  // Short-polling loop: 3-second interval
+  useEffect(() => {
+    if (!user || authLoading) return;
+
+    // Initial fetch
+    syncMessages();
+
+    const interval = setInterval(syncMessages, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, authLoading, syncMessages]);
 
+  // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Send message handler with optimistic UI
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || !user) return;
+    if (!inputValue.trim() || !user || isSending) return;
 
-    const newMsg: Message = {
+    const optimisticMsg: ChatMessage = {
       id: crypto.randomUUID(),
-      sender_id: user.uid,
-      recipient_id: null,
-      channel_name: "general",
-      message_content: inputValue.trim(),
-      created_at: new Date().toISOString(),
-      sender_username: user.displayName || "You",
+      channel_id: CHANNEL,
+      user_id: user.uid,
+      username: user.displayName || "You",
+      text: inputValue.trim(),
+      timestamp: new Date().toISOString(),
     };
 
-    // Optimistic Update
-    setMessages((prev) => [...prev, newMsg]);
+    // Optimistic render — immediately show on the glass panel
+    setMessages((prev) => [...prev, optimisticMsg]);
     setInputValue("");
+    setIsSending(true);
 
-    // Background Sync
     try {
-      const token = await user.getIdToken();
-      const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
-      
-      await fetch(`${apiUrl}/api/messages/send`, {
+      await authFetch(`${API_URL}/api/chat/send`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newMsg),
+        body: JSON.stringify({
+          id: optimisticMsg.id,
+          channel_id: CHANNEL,
+          text: optimisticMsg.text,
+        }),
       });
+
+      // Mark this ID as known so the dedup guard recognizes it on the next poll
+      knownIdsRef.current.add(optimisticMsg.id);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Rollback could be implemented here
+      // Rollback: remove the optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+    } finally {
+      setIsSending(false);
     }
   };
 
-  if (!user) {
+  // Auth gate: unauthenticated view
+  if (!user && !authLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
         <ShieldAlert className="w-16 h-16 text-red-400 opacity-50" />
@@ -98,27 +147,41 @@ export default function ChatPage() {
             <h2 className="font-bold text-white tracking-wide">General Nexus</h2>
             <p className="text-xs text-green-400 font-medium flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              Secure Connection
+              {isInitialLoadRef.current ? "Connecting..." : "Secure Connection"}
             </p>
           </div>
+        </div>
+        <div className="text-xs text-white/30 font-mono">
+          KV-Sync · {messages.length} msgs
         </div>
       </div>
 
       {/* Message Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+        {messages.length === 0 && !isInitialLoadRef.current && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+            <Sparkles className="w-10 h-10 text-white/20" />
+            <p className="text-white/30 text-sm">No messages yet. Start the conversation!</p>
+          </div>
+        )}
         {messages.map((msg) => {
-          const isMe = msg.sender_id === user.uid;
+          const isMe = msg.user_id === user?.uid;
           return (
-            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+            <div
+              key={msg.id}
+              className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+            >
               <span className="text-[10px] text-white/40 mb-1 px-1 font-medium tracking-wider uppercase">
-                {isMe ? 'You' : msg.sender_username}
+                {isMe ? "You" : msg.username || "Anonymous"}
               </span>
-              <div className={`px-4 py-3 rounded-2xl max-w-[80%] break-words shadow-md ${
-                isMe 
-                ? 'bg-blue-600 text-white rounded-tr-sm border border-blue-500' 
-                : 'bg-white/10 text-white/90 rounded-tl-sm border border-white/5 backdrop-blur-sm'
-              }`}>
-                {msg.message_content}
+              <div
+                className={`px-4 py-3 rounded-2xl max-w-[80%] break-words shadow-md ${
+                  isMe
+                    ? "bg-blue-600 text-white rounded-tr-sm border border-blue-500"
+                    : "bg-white/10 text-white/90 rounded-tl-sm border border-white/5 backdrop-blur-sm"
+                }`}
+              >
+                {msg.text}
               </div>
             </div>
           );
@@ -130,18 +193,25 @@ export default function ChatPage() {
       <div className="p-4 bg-slate-900/50 backdrop-blur-md border-t border-white/10">
         <form onSubmit={handleSendMessage} className="flex items-center gap-2 relative">
           <input
+            id="chat-input"
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Broadcast message..."
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            disabled={isSending}
           />
           <button
+            id="chat-send-btn"
             type="submit"
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || isSending}
             className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-all"
           >
-            <Send className="w-5 h-5" />
+            {isSending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </button>
         </form>
       </div>

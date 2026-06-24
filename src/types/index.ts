@@ -30,6 +30,15 @@ export interface Message {
   sender_username?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  channel_id: string;
+  user_id: string;
+  username?: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface RegisterPayload {
   id: string;
   username: string;
