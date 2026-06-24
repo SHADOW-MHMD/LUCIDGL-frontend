@@ -91,7 +91,8 @@ export default function FacesUploadPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
+        const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
+        throw new Error(detailedError || "Upload failed");
       }
 
       setSuccess(true);
