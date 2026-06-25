@@ -98,7 +98,10 @@ function ReelCard({ reel }: { reel: FacePost }) {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     // Optimistic UI update
     if (isLiked) {
       setLikes((l) => Math.max(0, l - 1));
@@ -112,7 +115,7 @@ function ReelCard({ reel }: { reel: FacePost }) {
       try {
         const token = await user.getIdToken();
         const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
-        await fetch(`${apiUrl}/api/feed/like`, {
+        const response = await fetch(`${apiUrl}/api/feed/like`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -120,8 +123,11 @@ function ReelCard({ reel }: { reel: FacePost }) {
           },
           body: JSON.stringify({ postId: reel.id })
         });
+        if (!response.ok) {
+          console.error("Backend like update failed", await response.text());
+        }
       } catch (err) {
-        console.error("Like failed", err);
+        console.error("Like request failed", err);
       }
     }
   };
@@ -172,8 +178,8 @@ function ReelCard({ reel }: { reel: FacePost }) {
           <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.videoUrl}`}</p>
         </div>
 
-        <div className="flex flex-col gap-6 items-center">
-          <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
+        <div className="flex flex-col gap-6 items-center z-40">
+          <button type="button" onClick={handleLike} className="flex flex-col items-center gap-1 group relative z-40">
             <div className={`p-3 rounded-full backdrop-blur-md transition-all ${isLiked ? 'bg-red-500/20 text-red-500' : 'bg-black/20 text-white group-hover:bg-white/10'}`}>
               <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500' : ''}`} />
             </div>
