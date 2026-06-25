@@ -12,9 +12,15 @@ export default function ReelsPage() {
 
   useEffect(() => {
     const fetchReels = async () => {
+      if (!user) return;
       try {
+        const token = await user.getIdToken();
         const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
-        const res = await fetch(`${apiUrl}/api/feed/reels`);
+        const res = await fetch(`${apiUrl}/api/feed/reels`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setReels(data);
@@ -26,7 +32,7 @@ export default function ReelsPage() {
       }
     };
     fetchReels();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -67,9 +73,9 @@ function ReelCard({ reel }: { reel: FacePost }) {
   const videoRef = useRef<HTMLDivElement>(null);
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(reel.like_count);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(!!reel.is_liked);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -85,6 +91,18 @@ function ReelCard({ reel }: { reel: FacePost }) {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (videoElementRef.current) {
+      if (isVisible) {
+        videoElementRef.current.play().catch(e => console.log("Play interrupted", e));
+        setIsPlaying(true);
+      } else {
+        videoElementRef.current.pause();
+        setIsPlaying(false);
+      }
+    }
+  }, [isVisible]);
 
   const togglePlayback = () => {
     if (videoElementRef.current) {
@@ -145,8 +163,8 @@ function ReelCard({ reel }: { reel: FacePost }) {
           src={reel.videoUrl}
           playsInline={true}
           loop={true}
-          autoPlay={true}
           muted={true}
+          preload="metadata"
           className="relative z-10 w-full h-full object-cover"
         />
         {!isPlaying && isVisible && (

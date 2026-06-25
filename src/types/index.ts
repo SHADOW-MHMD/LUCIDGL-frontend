@@ -14,6 +14,7 @@ export interface FacePost {
   videoUrl: string;
   caption: string;
   like_count: number;
+  is_liked?: number | boolean;
   is_promoted?: number;
   created_at: string;
   username?: string;
