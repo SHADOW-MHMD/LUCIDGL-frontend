@@ -65,7 +65,9 @@ export default function ReelsPage() {
 function ReelCard({ reel }: { reel: FacePost }) {
   const { user } = useAuth();
   const videoRef = useRef<HTMLDivElement>(null);
+  const videoElementRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [likes, setLikes] = useState(reel.like_count);
   const [isLiked, setIsLiked] = useState(false);
 
@@ -83,6 +85,18 @@ function ReelCard({ reel }: { reel: FacePost }) {
 
     return () => observer.disconnect();
   }, []);
+
+  const togglePlayback = () => {
+    if (videoElementRef.current) {
+      if (isPlaying) {
+        videoElementRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoElementRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
 
   const handleLike = async () => {
     // Optimistic UI update
@@ -117,9 +131,11 @@ function ReelCard({ reel }: { reel: FacePost }) {
       {/* Actual Video Container */}
       <div 
         ref={videoRef}
-        className={`absolute inset-0 bg-black transition-opacity duration-700 flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-50'}`}
+        onClick={togglePlayback}
+        className={`absolute inset-0 bg-black transition-opacity duration-700 flex items-center justify-center cursor-pointer ${isVisible ? 'opacity-100' : 'opacity-50'}`}
       >
         <video
+          ref={videoElementRef}
           src={reel.videoUrl}
           playsInline={true}
           loop={true}
@@ -127,15 +143,22 @@ function ReelCard({ reel }: { reel: FacePost }) {
           muted={true}
           className="relative z-10 w-full h-full object-cover"
         />
+        {!isPlaying && isVisible && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+              <span className="text-white font-bold text-xs tracking-widest">PAUSED</span>
+            </div>
+          </div>
+        )}
         {!isVisible && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
             <span className="text-white/30 text-xs font-mono">PAUSED</span>
           </div>
         )}
       </div>
 
       {/* Overlays */}
-      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex justify-between items-end">
+      <div className={`absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex justify-between items-end z-30 transition-opacity duration-300 ${isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex flex-col gap-2 flex-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20"></div>
