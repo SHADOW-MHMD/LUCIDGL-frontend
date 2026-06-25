@@ -63,6 +63,7 @@ export default function ReelsPage() {
 }
 
 function ReelCard({ reel }: { reel: FacePost }) {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [likes, setLikes] = useState(reel.like_count);
@@ -83,7 +84,7 @@ function ReelCard({ reel }: { reel: FacePost }) {
     return () => observer.disconnect();
   }, []);
 
-  const handleLike = () => {
+  const handleLike = async () => {
     // Optimistic UI update
     if (isLiked) {
       setLikes((l) => Math.max(0, l - 1));
@@ -92,7 +93,23 @@ function ReelCard({ reel }: { reel: FacePost }) {
       setLikes((l) => l + 1);
       setIsLiked(true);
     }
-    // Fire-and-forget fetch to backend would go here
+    
+    if (user) {
+      try {
+        const token = await user.getIdToken();
+        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+        await fetch(`${apiUrl}/api/feed/like`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ postId: reel.id })
+        });
+      } catch (err) {
+        console.error("Like failed", err);
+      }
+    }
   };
 
   return (
@@ -100,7 +117,7 @@ function ReelCard({ reel }: { reel: FacePost }) {
       {/* Actual Video Container */}
       <div 
         ref={videoRef}
-        className={`absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-700 flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-50'}`}
+        className={`absolute inset-0 bg-black transition-opacity duration-700 flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-50'}`}
       >
         <video
           src={reel.videoUrl}
@@ -108,7 +125,7 @@ function ReelCard({ reel }: { reel: FacePost }) {
           loop={true}
           autoPlay={true}
           muted={true}
-          className="w-full h-full object-cover mix-blend-overlay opacity-90"
+          className="relative z-10 w-full h-full object-cover"
         />
         {!isVisible && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
