@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldAlert, Upload, Loader2, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function FacesUploadPage() {
   const { user, loading: authLoading } = useAuth();
@@ -77,52 +78,25 @@ export default function FacesUploadPage() {
       const token = await user.getIdToken();
       const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
       
-      // 1 & 2. Construct Hugging Face commit payload
-      const generatedFilename = `${crypto.randomUUID()}.mp4`;
-      const hfPath = `videos/${generatedFilename}`;
-      const HF_USERNAME = "SHADOW-MHMD";
-      const HF_DATASET_NAME = "LUCID-GL";
+      // 1. Direct Supabase Storage Binary Upload
+      const fileExt = file.name.split('.').pop();
+      const filePath = `faces/${crypto.randomUUID()}.${fileExt}`;
 
-      const hfFormData = new FormData();
-      hfFormData.append("operations", JSON.stringify([
-        {
-          key: "file1",
-          path: hfPath,
-          operation: "addOrUpdate"
-        }
-      ]));
-      hfFormData.append("header", JSON.stringify({
-        summary: "Upload new face feed video reel via client proxy"
-      }));
-      hfFormData.append("file1", file);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      // 3. Request secure write token from backend gateway
-      const tokenRes = await fetch(`${apiUrl}/api/faces/upload-token`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!tokenRes.ok) throw new Error("Failed to allocate secure upload token from gateway");
-      const { token: hfToken } = await tokenRes.json();
+      if (uploadError) throw new Error(`Supabase Upload Error: ${uploadError.message}`);
 
-      // 4. Upload directly to Hugging Face Public Dataset
-      const hfRes = await fetch(
-        `https://huggingface.co/api/datasets/${HF_USERNAME}/${HF_DATASET_NAME}/commit/main`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${hfToken}`,
-          },
-          body: hfFormData,
-        }
-      );
+      // 2. Resolve fast public CDN path
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(uploadData.path);
 
-      if (!hfRes.ok) {
-        const hfData = await hfRes.json().catch(() => ({}));
-        const detailedError = hfData.error || "Failed to upload to Hugging Face";
-        throw new Error(`HF Error: ${detailedError}`);
-      }
-
-      // 4. Construct public resolution URL
-      const videoUrl = `https://huggingface.co/datasets/${HF_USERNAME}/${HF_DATASET_NAME}/resolve/main/${hfPath}`;
+      const videoUrl = urlData.publicUrl;
 
       // 5. Fire JSON payload to Cloudflare Worker
       const backendRes = await fetch(`${apiUrl}/api/faces/upload`, {
