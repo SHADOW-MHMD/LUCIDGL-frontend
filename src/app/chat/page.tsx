@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const knownIdsRef = useRef(new Set<string>());
-  const isInitialLoadRef = useRef(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Authenticated fetch helper
   const authFetch = useCallback(
@@ -38,6 +38,7 @@ export default function ChatPage() {
   // Sync messages from KV-backed endpoint
   const syncMessages = useCallback(async () => {
     if (!user || authLoading) return;
+
     try {
       const res = await authFetch(
         `${API_URL}/api/chat/sync/${CHANNEL}`
@@ -61,7 +62,7 @@ export default function ChatPage() {
         return [...incoming, ...optimisticOnly];
       });
 
-      isLoading = false;
+      setIsLoading(false);
     } catch (error) {
       console.error("Chat sync failed:", error);
     }
