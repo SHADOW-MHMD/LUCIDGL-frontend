@@ -97,18 +97,21 @@ function ReelCard({ reel }: { reel: FacePost }) {
 
   return (
     <div className="snap-center shrink-0 w-full aspect-[9/16] rounded-[2.5rem] bg-slate-900 border border-white/10 overflow-hidden relative shadow-2xl flex flex-col">
-      {/* Mock Video Container */}
+      {/* Actual Video Container */}
       <div 
         ref={videoRef}
         className={`absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-700 flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-50'}`}
       >
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
-        {isVisible ? (
-          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center animate-pulse">
-            <span className="text-white/70 text-xs font-mono">PLAYING</span>
-          </div>
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center">
+        <video
+          src={reel.videoUrl}
+          playsInline={true}
+          loop={true}
+          autoPlay={true}
+          muted={true}
+          className="w-full h-full object-cover mix-blend-overlay opacity-90"
+        />
+        {!isVisible && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
             <span className="text-white/30 text-xs font-mono">PAUSED</span>
           </div>
         )}
@@ -126,7 +129,7 @@ function ReelCard({ reel }: { reel: FacePost }) {
               </span>
             )}
           </div>
-          <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.hf_repo_path}`}</p>
+          <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.videoUrl}`}</p>
         </div>
 
         <div className="flex flex-col gap-6 items-center">

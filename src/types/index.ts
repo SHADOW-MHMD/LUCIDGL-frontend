@@ -11,10 +11,10 @@ export interface User {
 export interface FacePost {
   id: string;
   user_id: string;
-  hf_repo_path: string;
+  videoUrl: string;
   caption: string;
   like_count: number;
-  is_promoted: number;
+  is_promoted?: number;
   created_at: string;
   username?: string;
   badge_tier?: string;
