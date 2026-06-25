@@ -96,8 +96,14 @@ export default function FacesUploadPage() {
       }));
       hfFormData.append("file1", file);
 
-      // 3. Upload directly to Hugging Face Public Dataset
-      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN || "";
+      // 3. Request secure write token from backend gateway
+      const tokenRes = await fetch(`${apiUrl}/api/faces/upload-token`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!tokenRes.ok) throw new Error("Failed to allocate secure upload token from gateway");
+      const { token: hfToken } = await tokenRes.json();
+
+      // 4. Upload directly to Hugging Face Public Dataset
       const hfRes = await fetch(
         `https://huggingface.co/api/datasets/${HF_USERNAME}/${HF_DATASET_NAME}/commit/main`,
         {
