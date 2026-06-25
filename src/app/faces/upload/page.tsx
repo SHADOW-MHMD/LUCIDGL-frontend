@@ -74,27 +74,71 @@ export default function FacesUploadPage() {
     setErrorMsg("");
 
     try {
-      const formData = new FormData();
-      formData.append("video", file);
-      formData.append("caption", caption);
-
       const token = await user.getIdToken();
       const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+      
+      // 1 & 2. Construct Hugging Face commit payload
+      const generatedFilename = `${crypto.randomUUID()}.mp4`;
+      const hfPath = `videos/${generatedFilename}`;
+      const HF_USERNAME = "SHADOW-MHMD";
+      const HF_DATASET_NAME = "LUCID-GL";
 
-      const res = await fetch(`${apiUrl}/api/faces/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const hfFormData = new FormData();
+      hfFormData.append("operations", JSON.stringify([
+        {
+          key: "file1",
+          path: hfPath,
+          operation: "addOrUpdate"
+        }
+      ]));
+      hfFormData.append("header", JSON.stringify({
+        summary: "Upload new face feed video reel via client proxy"
+      }));
+      hfFormData.append("file1", file);
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
-        throw new Error(detailedError || "Upload failed");
+      // 3. Upload directly to Hugging Face Public Dataset
+      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN || "";
+      const hfRes = await fetch(
+        `https://huggingface.co/api/datasets/${HF_USERNAME}/${HF_DATASET_NAME}/commit/main`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${hfToken}`,
+          },
+          body: hfFormData,
+        }
+      );
+
+      if (!hfRes.ok) {
+        const hfData = await hfRes.json().catch(() => ({}));
+        const detailedError = hfData.error || "Failed to upload to Hugging Face";
+        throw new Error(`HF Error: ${detailedError}`);
       }
 
+      // 4. Construct public resolution URL
+      const videoUrl = `https://huggingface.co/datasets/${HF_USERNAME}/${HF_DATASET_NAME}/resolve/main/${hfPath}`;
+
+      // 5. Fire JSON payload to Cloudflare Worker
+      const backendRes = await fetch(`${apiUrl}/api/faces/upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          videoUrl,
+          userId: user.uid,
+          caption
+        }),
+      });
+
+      if (!backendRes.ok) {
+        const data = await backendRes.json().catch(() => ({}));
+        const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
+        throw new Error(`Backend Error: ${detailedError || "Failed to log on server"}`);
+      }
+
+      // 6. Optimistic UI update
       setSuccess(true);
       setFile(null);
       setCaption("");
@@ -102,8 +146,8 @@ export default function FacesUploadPage() {
       setTimeout(() => {
         router.push("/reels");
       }, 3000);
-    } catch (error: any) {
-      setErrorMsg(error.message || "An error occurred during upload.");
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : "An error occurred during upload.");
     } finally {
       setIsUploading(false);
     }

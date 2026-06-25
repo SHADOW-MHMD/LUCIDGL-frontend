@@ -61,7 +61,7 @@ export default function ChatPage() {
         return [...incoming, ...optimisticOnly];
       });
 
-      isInitialLoadRef.current = false;
+      isLoading = false;
     } catch (error) {
       console.error("Chat sync failed:", error);
     }
@@ -147,7 +147,7 @@ export default function ChatPage() {
             <h2 className="font-bold text-white tracking-wide">General Nexus</h2>
             <p className="text-xs text-green-400 font-medium flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              {isInitialLoadRef.current ? "Connecting..." : "Secure Connection"}
+              {isLoading ? "Connecting..." : "Secure Connection"}
             </p>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function ChatPage() {
 
       {/* Message Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-        {messages.length === 0 && !isInitialLoadRef.current && (
+        {messages.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <Sparkles className="w-10 h-10 text-white/20" />
             <p className="text-white/30 text-sm">No messages yet. Start the conversation!</p>
