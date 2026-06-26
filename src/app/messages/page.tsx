@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Plus, MessageSquare, Hash, Home, Compass, ArrowLeft, Users } from "lucide-react";
+import { ShieldAlert, Plus, MessageSquare, Hash, Home, Compass, ArrowLeft, Users, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Community, Channel, Profile } from "@/types";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { CreateCommunityModal } from "@/components/chat/CreateCommunityModal";
 import { CreateDMModal } from "@/components/chat/CreateDMModal";
 import { CreateChannelModal } from "@/components/chat/CreateChannelModal";
+import { AddMemberModal } from "@/components/chat/AddMemberModal";
 import Link from "next/link";
 
 export default function MessagesPage() {
@@ -23,6 +24,7 @@ export default function MessagesPage() {
   const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
   const [isCreatingDM, setIsCreatingDM] = useState(false);
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Profile[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -57,7 +59,7 @@ export default function MessagesPage() {
         // Fetch DMs
         const { data: dmMembers } = await supabase
           .from('channel_members')
-          .select('channel_id, channels(id, name, type)')
+          .select('channel_id, channels(id, name, type, channel_members(profiles(id, username, avatar_url)))')
           .eq('user_id', user.id);
           
         if (dmMembers) {
@@ -207,12 +209,26 @@ export default function MessagesPage() {
                 {channel.type === 'community' ? (
                   <Hash className="w-5 h-5 mr-1.5 shrink-0" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-700 mr-2 shrink-0 flex items-center justify-center text-white text-xs">
-                    DM
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-700 mr-2 shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
+                    {(() => {
+                      const otherProfile = (channel as any).channel_members?.find((m: any) => m.profiles?.id !== user.id)?.profiles;
+                      return otherProfile?.avatar_url ? (
+                        <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        "DM"
+                      );
+                    })()}
                   </div>
                 )}
                 <span className="truncate font-medium flex-1">
-                  {channel.name || "Unnamed DM"}
+                  {channel.type === 'dm' ? (
+                    (() => {
+                      const otherProfile = (channel as any).channel_members?.find((m: any) => m.profiles?.id !== user.id)?.profiles;
+                      return otherProfile?.username || "Unnamed DM";
+                    })()
+                  ) : (
+                    channel.name || "Unnamed Channel"
+                  )}
                 </span>
               </button>
             ))
@@ -240,8 +256,16 @@ export default function MessagesPage() {
         {selectedChannel ? (
           <ChatArea 
             channelId={selectedChannel.id} 
-            channelName={selectedChannel.name || "chat"} 
+            channelName={
+              selectedChannel.type === 'dm' 
+                ? ((selectedChannel as any).channel_members?.find((m: any) => m.profiles?.id !== user.id)?.profiles?.username || "Direct Message")
+                : (selectedChannel.name || "chat")
+            } 
             type={selectedChannel.type}
+            onChannelDeleted={() => {
+              setSelectedChannel(null);
+              setRefreshTrigger(prev => prev + 1);
+            }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-black/20 backdrop-blur-md">
@@ -258,9 +282,18 @@ export default function MessagesPage() {
       {selectedCommunityId !== null && selectedChannel?.type === 'community' && (
         <div className="w-64 shrink-0 bg-white/5 backdrop-blur-xl flex flex-col border-l border-white/10 relative z-10">
           {/* Header matches ChatArea header height */}
-          <div className="h-14 border-b border-white/10 flex items-center px-5 shadow-sm shrink-0 bg-white/5">
-            <Users className="w-5 h-5 text-white/50 mr-2" />
-            <span className="text-white font-bold text-sm tracking-wide">Members</span>
+          <div className="h-14 border-b border-white/10 flex items-center justify-between px-5 shadow-sm shrink-0 bg-white/5">
+            <div className="flex items-center">
+              <Users className="w-5 h-5 text-white/50 mr-2" />
+              <span className="text-white font-bold text-sm tracking-wide">Members</span>
+            </div>
+            <button 
+              onClick={() => setIsAddingMember(true)}
+              className="text-white/50 hover:text-emerald-400 transition-colors"
+              title="Add Member"
+            >
+              <UserPlus className="w-5 h-5" />
+            </button>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
@@ -314,6 +347,16 @@ export default function MessagesPage() {
           onClose={() => setIsCreatingChannel(false)}
           onCreated={(id) => {
             setIsCreatingChannel(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
+      {isAddingMember && selectedCommunityId && (
+        <AddMemberModal
+          communityId={selectedCommunityId}
+          onClose={() => setIsAddingMember(false)}
+          onAdded={() => {
+            setIsAddingMember(false);
             setRefreshTrigger(prev => prev + 1);
           }}
         />

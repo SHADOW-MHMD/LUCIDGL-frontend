@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Hash, Users } from "lucide-react";
+import { Send, Hash, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,9 +8,10 @@ interface ChatAreaProps {
   channelId: string;
   channelName: string;
   type: 'community' | 'dm';
+  onChannelDeleted?: () => void;
 }
 
-export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
+export function ChatArea({ channelId, channelName, type, onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [text, setText] = useState("");
@@ -83,6 +84,16 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
     }
   }, [messages]);
 
+  const handleDeleteChannel = async () => {
+    if (!window.confirm("Are you sure you want to delete this channel?")) return;
+    const { error } = await supabase.from('channels').delete().eq('id', channelId);
+    if (error) {
+      console.error("Failed to delete channel", error);
+    } else {
+      onChannelDeleted?.();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !user) return;
@@ -105,13 +116,24 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
   return (
     <div className="flex flex-col h-full bg-black/20 backdrop-blur-md relative">
       {/* Header */}
-      <div className="h-14 border-b border-white/10 flex items-center px-5 shadow-sm shrink-0 z-10 bg-white/5">
-        {type === 'community' ? (
-          <Hash className="w-6 h-6 text-white/50 mr-2" />
-        ) : (
-          <Users className="w-5 h-5 text-white/50 mr-2" />
+      <div className="h-14 border-b border-white/10 flex items-center px-5 shadow-sm shrink-0 z-10 bg-white/5 justify-between">
+        <div className="flex items-center">
+          {type === 'community' ? (
+            <Hash className="w-6 h-6 text-white/50 mr-2" />
+          ) : (
+            <Users className="w-5 h-5 text-white/50 mr-2" />
+          )}
+          <h3 className="text-white font-bold tracking-wide">{channelName || "unknown-channel"}</h3>
+        </div>
+        {type === 'community' && (
+          <button 
+            onClick={handleDeleteChannel}
+            className="text-white/50 hover:text-red-400 transition-colors p-2"
+            title="Delete Channel"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         )}
-        <h3 className="text-white font-bold tracking-wide">{channelName || "unknown-channel"}</h3>
       </div>
 
       {/* Messages */}
