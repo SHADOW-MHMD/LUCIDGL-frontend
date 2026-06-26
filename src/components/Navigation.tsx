@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare } from "lucide-react";
+import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare, Globe2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function Navigation() {
@@ -12,7 +12,8 @@ export default function Navigation() {
   const links = [
     { href: "/", label: "Home", icon: Home },
     { href: "/reels", label: "Reels", icon: Play },
-    { href: "/messages", label: "Messages", icon: MessageSquare },
+    { href: "/messages", label: "DMs", icon: MessageSquare },
+    { href: "/chat", label: "Global", icon: Globe2 },
     { href: "/leaderboard", label: "Rank", icon: BarChart3 },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
   ];
