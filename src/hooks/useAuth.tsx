@@ -53,6 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to sync user:", data.error);
         }
       }
+
+      // Sync with Supabase profiles table for real-time chat joins
+      try {
+        await supabase.from("profiles").upsert({
+          id: sessionUser.id,
+          username: generatedUsername,
+          avatar_url: sessionUser.user_metadata?.avatar_url || null,
+        }, { onConflict: "id" });
+      } catch (err) {
+        console.error("Failed to sync Supabase profile", err);
+      }
     } catch (error) {
       console.error("Backend sync error:", error);
     } finally {

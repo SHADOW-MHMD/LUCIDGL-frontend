@@ -42,3 +42,32 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
 }
+
+export interface Profile {
+  id: string;
+  username: string;
+  avatar_url?: string;
+}
+
+export interface Community {
+  id: string;
+  name: string;
+  owner_id: string;
+  logo_url?: string;
+}
+
+export interface Channel {
+  id: string;
+  community_id?: string;
+  name?: string;
+  type: 'community' | 'dm';
+}
+
+export interface SupabaseMessage {
+  id: string;
+  channel_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+  profiles?: Profile;
+}
