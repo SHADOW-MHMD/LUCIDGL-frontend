@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldAlert, Send, Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import type { ChatMessage } from "@/types";
 
 const API_URL = "https://lucid-gl.muhammed1515mishal.workers.dev";
@@ -22,8 +23,9 @@ export default function ChatPage() {
   const authFetch = useCallback(
     async (url: string, options?: RequestInit) => {
       if (!user) throw new Error("Not authenticated");
-      const token = await user.getIdToken();
-      return fetch(url, {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(url, {
         ...options,
         headers: {
           "Content-Type": "application/json",
@@ -31,6 +33,8 @@ export default function ChatPage() {
           ...options?.headers,
         },
       });
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      return res;
     },
     [user]
   );
@@ -93,8 +97,8 @@ export default function ChatPage() {
     const optimisticMsg: ChatMessage = {
       id: crypto.randomUUID(),
       channel_id: CHANNEL,
-      user_id: user.uid,
-      username: user.displayName || "You",
+      user_id: user.id,
+      username: user.user_metadata?.full_name || "You",
       text: inputValue.trim(),
       timestamp: new Date().toISOString(),
     };
@@ -113,9 +117,6 @@ export default function ChatPage() {
           text: optimisticMsg.text,
         }),
       });
-
-      // Mark this ID as known so the dedup guard recognizes it on the next poll
-      knownIdsRef.current.add(optimisticMsg.id);
     } catch (error) {
       console.error("Failed to send message:", error);
       // Rollback: remove the optimistic message on failure
@@ -166,7 +167,7 @@ export default function ChatPage() {
           </div>
         )}
         {messages.map((msg) => {
-          const isMe = msg.user_id === user?.uid;
+          const isMe = msg.user_id === user?.id;
           return (
             <div
               key={msg.id}

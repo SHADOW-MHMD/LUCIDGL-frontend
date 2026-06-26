@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Heart, MessageCircle, Share2, MoreVertical, ShieldAlert } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import type { FacePost } from "@/types";
 
 export default function ReelsPage() {
@@ -14,7 +15,8 @@ export default function ReelsPage() {
     const fetchReels = async () => {
       if (!user) return;
       try {
-        const token = await user.getIdToken();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
         const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
         const res = await fetch(`${apiUrl}/api/feed/reels`, {
           headers: {
@@ -131,7 +133,8 @@ function ReelCard({ reel }: { reel: FacePost }) {
     
     if (user) {
       try {
-        const token = await user.getIdToken();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
         const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
         const response = await fetch(`${apiUrl}/api/feed/like`, {
           method: "POST",
@@ -143,9 +146,18 @@ function ReelCard({ reel }: { reel: FacePost }) {
         });
         if (!response.ok) {
           console.error("Backend like update failed", await response.text());
+          throw new Error("Backend like update failed");
         }
       } catch (err) {
         console.error("Like request failed", err);
+        // Rollback
+        if (isLiked) {
+          setLikes((l) => l + 1);
+          setIsLiked(true);
+        } else {
+          setLikes((l) => Math.max(0, l - 1));
+          setIsLiked(false);
+        }
       }
     }
   };

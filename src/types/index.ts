@@ -48,7 +48,7 @@ export interface RegisterPayload {
 
 export interface CreateReelPayload {
   id: string;
-  hf_repo_path: string;
+  video_url: string;
   caption?: string;
 }
 

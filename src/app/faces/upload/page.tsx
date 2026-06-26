@@ -75,7 +75,8 @@ export default function FacesUploadPage() {
     setErrorMsg("");
 
     try {
-      const token = await user.getIdToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
       
       // 1. Direct Supabase Storage Binary Upload
@@ -107,12 +108,13 @@ export default function FacesUploadPage() {
         },
         body: JSON.stringify({
           videoUrl,
-          userId: user.uid,
+          userId: user.id,
           caption
         }),
       });
 
       if (!backendRes.ok) {
+        await supabase.storage.from('videos').remove([uploadData.path]);
         const data = await backendRes.json().catch(() => ({}));
         const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
         throw new Error(`Backend Error: ${detailedError || "Failed to log on server"}`);

@@ -51,13 +51,13 @@ export default function Navigation() {
           {user ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-white/20" />
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-white/20" />
                 ) : (
                   <UserCircle className="w-8 h-8 text-white/70" />
                 )}
                 <span className="hidden sm:block text-sm font-medium text-white/90">
-                  {user.displayName || user.email?.split('@')[0] || 'Developer'}
+                  {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Developer'}
                 </span>
               </div>
               <button

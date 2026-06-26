@@ -1,17 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import {
-  User as FirebaseUser,
-  GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut as firebaseSignOut,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: SupabaseUser | null;
   loading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -25,22 +19,20 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
-  const syncUserWithBackend = useCallback(async (firebaseUser: FirebaseUser) => {
+  const syncUserWithBackend = useCallback(async (sessionUser: SupabaseUser, token: string) => {
     try {
-      const token = await firebaseUser.getIdToken();
-      const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
       
-      const generatedUsername = firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User";
-      const email = firebaseUser.email || "no-email@provided.com";
+      const generatedUsername = sessionUser.user_metadata?.full_name || sessionUser.email?.split("@")[0] || "User";
+      const email = sessionUser.email || "no-email@provided.com";
 
       const res = await fetch(`${apiUrl}/api/users/register`, {
         method: "POST",
@@ -49,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: firebaseUser.uid,
+          id: sessionUser.id,
           username: generatedUsername,
           email: email
         }),
@@ -71,37 +63,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isMounted) return;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    // Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
         setLoading(true);
-        await syncUserWithBackend(firebaseUser);
-        setUser(firebaseUser);
+        await syncUserWithBackend(session.user, session.access_token);
+        setUser(session.user);
       } else {
         setUser(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [isMounted, syncUserWithBackend]);
 
   const signIn = async () => {
-    const provider = new GoogleAuthProvider();
     setLoading(true);
-
-    signInWithPopup(auth, provider)
-      .then(async (result) => {
-        await syncUserWithBackend(result.user);
-        setUser(result.user);
-      })
-      .catch((error) => {
-        console.error("Sign-in error:", error);
-        setLoading(false);
-      });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    if (error) {
+      console.error("Sign-in error:", error);
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
     setUser(null);
   };
 
@@ -113,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
