@@ -25,6 +25,7 @@ export default function MessagesPage() {
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Profile[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +93,7 @@ export default function MessagesPage() {
     };
     
     fetchChannels();
-  }, [user, selectedCommunityId]);
+  }, [user, selectedCommunityId, refreshTrigger]);
 
   if (!user) {
     return (
@@ -292,7 +293,7 @@ export default function MessagesPage() {
           onCreated={(id) => {
             setIsCreatingCommunity(false);
             setSelectedCommunityId(id);
-            window.location.reload(); 
+            // The useEffect will automatically fetch the new community and channels
           }}
         />
       )}
@@ -302,7 +303,8 @@ export default function MessagesPage() {
           onClose={() => setIsCreatingDM(false)}
           onCreated={(id) => {
             setIsCreatingDM(false);
-            window.location.reload();
+            setSelectedCommunityId(null);
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
       )}
@@ -312,7 +314,7 @@ export default function MessagesPage() {
           onClose={() => setIsCreatingChannel(false)}
           onCreated={(id) => {
             setIsCreatingChannel(false);
-            window.location.reload();
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
       )}
