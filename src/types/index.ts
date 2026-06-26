@@ -1,11 +1,11 @@
 export interface User {
   id: string;
   username: string;
-  email: string;
+  email?: string;
   streak_count: number;
   xp_points: number;
   badge_tier: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface FacePost {
@@ -21,16 +21,6 @@ export interface FacePost {
   badge_tier?: string;
 }
 
-export interface Message {
-  id: string;
-  sender_id: string;
-  recipient_id: string | null;
-  channel_name: string | null;
-  message_content: string;
-  created_at: string;
-  sender_username?: string;
-}
-
 export interface ChatMessage {
   id: string;
   channel_id: string;
@@ -38,27 +28,4 @@ export interface ChatMessage {
   username?: string;
   text: string;
   timestamp: string;
-}
-
-export interface RegisterPayload {
-  id: string;
-  username: string;
-  email: string;
-}
-
-export interface CreateReelPayload {
-  id: string;
-  video_url: string;
-  caption?: string;
-}
-
-export interface SendMessagePayload {
-  id: string;
-  recipient_id?: string | null;
-  channel_name?: string | null;
-  message_content: string;
-}
-
-export interface LikePayload {
-  postId: string;
 }
