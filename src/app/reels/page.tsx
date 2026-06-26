@@ -5,11 +5,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { Heart, MessageCircle, Share2, MoreVertical, ShieldAlert } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { FacePost } from "@/types";
+import { CommentsPanel } from "@/components/CommentsPanel";
 
 export default function ReelsPage() {
   const { user } = useAuth();
   const [reels, setReels] = useState<FacePost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReels = async () => {
@@ -62,15 +64,29 @@ export default function ReelsPage() {
           <div className="text-center text-slate-400 mt-20">No media available.</div>
         ) : (
           reels.map((reel) => (
-            <ReelCard key={reel.id} reel={reel} />
+            <ReelCard 
+              key={reel.id} 
+              reel={reel} 
+              onOpenComments={() => setActiveCommentPostId(reel.id)} 
+            />
           ))
         )}
       </div>
+
+      {activeCommentPostId && (
+        <CommentsPanel
+          postId={activeCommentPostId}
+          onClose={() => setActiveCommentPostId(null)}
+          onCommentAdded={(newCount) => {
+            setReels(reels.map(r => r.id === activeCommentPostId ? { ...r, comment_count: newCount } : r));
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function ReelCard({ reel }: { reel: FacePost }) {
+function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: () => void }) {
   const { user } = useAuth();
   const videoRef = useRef<HTMLDivElement>(null);
   const videoElementRef = useRef<HTMLVideoElement>(null);
@@ -216,11 +232,11 @@ function ReelCard({ reel }: { reel: FacePost }) {
             <span className="text-white font-medium text-xs drop-shadow-md">{likes}</span>
           </button>
           
-          <button className="flex flex-col items-center gap-1 group">
+          <button onClick={onOpenComments} className="flex flex-col items-center gap-1 group relative z-40">
             <div className="p-3 rounded-full bg-black/20 text-white backdrop-blur-md transition-all group-hover:bg-white/10">
               <MessageCircle className="w-6 h-6" />
             </div>
-            <span className="text-white font-medium text-xs drop-shadow-md">0</span>
+            <span className="text-white font-medium text-xs drop-shadow-md">{reel.comment_count || 0}</span>
           </button>
 
           <button className="flex flex-col items-center gap-1 group">
