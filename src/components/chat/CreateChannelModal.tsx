@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { X, Server } from "lucide-react";
+import { X, Hash } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-interface CreateCommunityModalProps {
+interface CreateChannelModalProps {
+  communityId: string;
   onClose: () => void;
-  onCreated: (communityId: string) => void;
+  onCreated: (channelId: string) => void;
 }
 
-export function CreateCommunityModal({ onClose, onCreated }: CreateCommunityModalProps) {
+export function CreateChannelModal({ communityId, onClose, onCreated }: CreateChannelModalProps) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,34 +18,20 @@ export function CreateCommunityModal({ onClose, onCreated }: CreateCommunityModa
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      // Create community
-      const { data: comm, error: commError } = await supabase
-        .from("communities")
-        .insert({ name, owner_id: session.user.id })
+      const { data: channel, error } = await supabase
+        .from("channels")
+        .insert({ 
+          community_id: communityId,
+          name: name.toLowerCase().replace(/\s+/g, '-'),
+          type: "community"
+        })
         .select()
         .single();
         
-      if (commError) throw commError;
-
-      // Add creator as member
-      await supabase.from("community_members").insert({
-        community_id: comm.id,
-        user_id: session.user.id
-      });
-
-      // Create a default "general" channel
-      await supabase.from("channels").insert({
-        community_id: comm.id,
-        name: "general",
-        type: "community"
-      });
-
-      onCreated(comm.id);
+      if (error) throw error;
+      onCreated(channel.id);
     } catch (err) {
-      console.error("Failed to create community", err);
+      console.error("Failed to create channel", err);
     } finally {
       setLoading(false);
     }
@@ -55,30 +42,26 @@ export function CreateCommunityModal({ onClose, onCreated }: CreateCommunityModa
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Server className="w-5 h-5 text-blue-400" />
-            Create Your Server
+            <Hash className="w-5 h-5 text-blue-400" />
+            Create Channel
           </h2>
           <button onClick={onClose} className="text-white/50 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-slate-400 text-sm mb-6">
-          Give your new community a personality with a name. You can always change it later.
-        </p>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">
-              Server Name
+              Channel Name
             </label>
             <div className="relative">
-              <Server className="absolute left-3 top-3.5 w-4 h-4 text-white/30" />
+              <Hash className="absolute left-3 top-3.5 w-4 h-4 text-white/30" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Gamer Lounge"
+                placeholder="new-channel"
                 maxLength={32}
                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500 transition-colors"
               />

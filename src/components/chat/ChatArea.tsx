@@ -103,33 +103,33 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#36393f] relative">
+    <div className="flex flex-col h-full bg-black/20 backdrop-blur-md relative">
       {/* Header */}
-      <div className="h-12 border-b border-[#202225] flex items-center px-4 shadow-sm shrink-0 z-10 bg-[#36393f]">
+      <div className="h-14 border-b border-white/10 flex items-center px-5 shadow-sm shrink-0 z-10 bg-white/5">
         {type === 'community' ? (
-          <Hash className="w-6 h-6 text-[#72767d] mr-2" />
+          <Hash className="w-6 h-6 text-white/50 mr-2" />
         ) : (
-          <Users className="w-5 h-5 text-[#72767d] mr-2" />
+          <Users className="w-5 h-5 text-white/50 mr-2" />
         )}
-        <h3 className="text-white font-bold">{channelName || "unknown-channel"}</h3>
+        <h3 className="text-white font-bold tracking-wide">{channelName || "unknown-channel"}</h3>
       </div>
 
       {/* Messages */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar scroll-smooth"
+        className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 no-scrollbar scroll-smooth"
       >
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-[#5865F2] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex-1 flex flex-col justify-end pb-8">
-            <div className="w-16 h-16 rounded-full bg-[#4f545c] flex items-center justify-center mb-4">
-              {type === 'community' ? <Hash className="w-8 h-8 text-white" /> : <Users className="w-8 h-8 text-white" />}
+            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+              {type === 'community' ? <Hash className="w-10 h-10 text-white/80" /> : <Users className="w-10 h-10 text-white/80" />}
             </div>
-            <h1 className="text-white font-bold text-3xl mb-2">Welcome to #{channelName}!</h1>
-            <p className="text-[#b9bbbe]">This is the start of the {type === 'community' ? 'channel' : 'direct message history'}.</p>
+            <h1 className="text-white font-bold text-4xl mb-3 tracking-tight">Welcome to #{channelName}!</h1>
+            <p className="text-white/60 text-lg">This is the start of the {type === 'community' ? 'channel' : 'direct message history'}.</p>
           </div>
         ) : (
           messages.map((msg, idx) => {
@@ -138,14 +138,14 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
             return (
               <div key={msg.id} className={`flex gap-4 group ${isConsecutive ? 'mt-0' : 'mt-4'}`}>
                 {!isConsecutive ? (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0 overflow-hidden">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shrink-0 overflow-hidden shadow-md">
                     {msg.profiles?.avatar_url && (
                       <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
                     )}
                   </div>
                 ) : (
                   <div className="w-10 shrink-0 opacity-0 group-hover:opacity-100 flex justify-center items-center">
-                    <span className="text-[10px] text-[#72767d]">
+                    <span className="text-[10px] text-white/40">
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -157,12 +157,12 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
                       <span className="text-white font-medium hover:underline cursor-pointer">
                         {msg.profiles?.username || "Unknown User"}
                       </span>
-                      <span className="text-xs text-[#72767d]">
+                      <span className="text-xs text-white/40">
                         {new Date(msg.created_at).toLocaleDateString()} {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   )}
-                  <p className="text-[#dcddde] leading-relaxed break-words">{msg.text}</p>
+                  <p className="text-white/90 leading-relaxed break-words">{msg.text}</p>
                 </div>
               </div>
             );
@@ -171,19 +171,19 @@ export function ChatArea({ channelId, channelName, type }: ChatAreaProps) {
       </div>
 
       {/* Input */}
-      <div className="px-4 pb-6 pt-2 shrink-0">
+      <div className="px-6 pb-6 pt-2 shrink-0">
         <form onSubmit={handleSubmit} className="relative flex items-center">
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={`Message #${channelName}`}
-            className="w-full bg-[#40444b] text-[#dcddde] placeholder-[#72767d] rounded-lg pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-[#5865F2] transition-all"
+            className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-md shadow-lg"
           />
           <button 
             type="submit"
             disabled={!text.trim()}
-            className="absolute right-2 p-1.5 rounded-md hover:bg-[#5865F2] text-[#b9bbbe] hover:text-white disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+            className="absolute right-2 p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
           >
             <Send className="w-5 h-5" />
           </button>
