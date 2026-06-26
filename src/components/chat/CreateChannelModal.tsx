@@ -18,18 +18,18 @@ export function CreateChannelModal({ communityId, onClose, onCreated }: CreateCh
     setLoading(true);
 
     try {
-      const { data: channel, error } = await supabase
+      const channelId = crypto.randomUUID();
+      const { error } = await supabase
         .from("channels")
         .insert({ 
+          id: channelId,
           community_id: communityId,
-          name: name.toLowerCase().replace(/\s+/g, '-'),
+          name: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
           type: "community"
-        })
-        .select()
-        .single();
+        });
         
       if (error) throw error;
-      onCreated(channel.id);
+      onCreated(channelId);
     } catch (err) {
       console.error("Failed to create channel", err);
     } finally {

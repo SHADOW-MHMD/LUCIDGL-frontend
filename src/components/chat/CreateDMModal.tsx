@@ -29,22 +29,21 @@ export function CreateDMModal({ onClose, onCreated }: CreateDMModalProps) {
   const handleCreateDM = async (targetUserId: string, targetUsername: string) => {
     if (!user) return;
     try {
-      // Create a DM channel
-      const { data: channel, error: chError } = await supabase
+      // Create a DM channel with a client-generated UUID to avoid RLS SELECT issues
+      const channelId = crypto.randomUUID();
+      const { error: chError } = await supabase
         .from('channels')
-        .insert({ type: 'dm', name: targetUsername })
-        .select()
-        .single();
+        .insert({ id: channelId, type: 'dm', name: targetUsername });
         
       if (chError) throw chError;
 
       // Add both users to channel_members
       await supabase.from('channel_members').insert([
-        { channel_id: channel.id, user_id: user.id },
-        { channel_id: channel.id, user_id: targetUserId }
+        { channel_id: channelId, user_id: user.id },
+        { channel_id: channelId, user_id: targetUserId }
       ]);
 
-      onCreated(channel.id);
+      onCreated(channelId);
     } catch (err) {
       console.error("Failed to create DM", err);
     }

@@ -36,7 +36,9 @@ export function CreateCommunityModal({ onClose, onCreated }: CreateCommunityModa
       });
 
       // Create a default "general" channel
+      const channelId = crypto.randomUUID();
       await supabase.from("channels").insert({
+        id: channelId,
         community_id: comm.id,
         name: "general",
         type: "community"
