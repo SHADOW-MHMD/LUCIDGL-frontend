@@ -12,7 +12,7 @@ export default function Navigation() {
   const links = [
     { href: "/", label: "Home", icon: Home },
     { href: "/reels", label: "Reels", icon: Play },
-    { href: "/chat", label: "Chat", icon: MessageSquare },
+    { href: "/messages", label: "Messages", icon: MessageSquare },
     { href: "/leaderboard", label: "Rank", icon: BarChart3 },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
   ];

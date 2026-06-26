@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Plus, MessageSquare, Hash, Home, Compass } from "lucide-react";
+import { ShieldAlert, Plus, MessageSquare, Hash, Home, Compass, ArrowLeft, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Community, Channel } from "@/types";
+import type { Community, Channel, Profile } from "@/types";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { CreateCommunityModal } from "@/components/chat/CreateCommunityModal";
 import { CreateDMModal } from "@/components/chat/CreateDMModal";
+import Link from "next/link";
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function MessagesPage() {
   const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
   const [isCreatingDM, setIsCreatingDM] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<Profile[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -74,6 +76,16 @@ export default function MessagesPage() {
           if (commChannels.length > 0) setSelectedChannel(commChannels[0] as Channel);
           else setSelectedChannel(null);
         }
+
+        // Fetch community members
+        const { data: commMembers } = await supabase
+          .from('community_members')
+          .select('profiles(id, username, avatar_url)')
+          .eq('community_id', selectedCommunityId);
+          
+        if (commMembers) {
+          setMembers(commMembers.map(m => m.profiles) as unknown as Profile[]);
+        }
       }
     };
     
@@ -91,11 +103,17 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)] w-full overflow-hidden bg-[#202225] font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-[#202225] font-sans">
       
       {/* 1. SERVER SIDEBAR (Left-most) */}
       <div className="w-[72px] shrink-0 bg-[#202225] flex flex-col items-center py-3 gap-2 overflow-y-auto no-scrollbar border-r border-[#1a1b1e] relative z-20">
         
+        {/* Back Button */}
+        <Link href="/" className="w-12 h-12 flex items-center justify-center bg-[#36393f] rounded-[24px] text-[#dcddde] hover:bg-white/10 hover:rounded-[16px] hover:text-white transition-all duration-200">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div className="w-8 h-[2px] bg-[#2d2f32] my-1 rounded-full" />
+
         {/* Home Button (DMs) */}
         <button 
           onClick={() => setSelectedCommunityId(null)}
@@ -220,6 +238,39 @@ export default function MessagesPage() {
           </div>
         )}
       </div>
+
+      {/* 4. MEMBER LIST SIDEBAR (Right-most) */}
+      {selectedCommunityId !== null && selectedChannel?.type === 'community' && (
+        <div className="w-60 shrink-0 bg-[#2f3136] flex flex-col border-l border-[#202225]">
+          {/* Header matches ChatArea header height */}
+          <div className="h-12 border-b border-[#202225] flex items-center px-4 shadow-sm shrink-0 bg-[#36393f]">
+            <Users className="w-5 h-5 text-[#72767d] mr-2" />
+            <span className="text-white font-bold text-sm">Members</span>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
+            <h3 className="text-xs font-bold text-[#8e9297] uppercase tracking-wider mb-2">
+              Online — {members.length}
+            </h3>
+            <div className="flex flex-col gap-1">
+              {members.map(member => (
+                <div key={member.id} className="flex items-center gap-3 p-2 rounded hover:bg-[#393c43] cursor-pointer transition-colors group">
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 overflow-hidden">
+                      {member.avatar_url && <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                    {/* Status indicator */}
+                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#23a559] border-2 border-[#2f3136] rounded-full"></div>
+                  </div>
+                  <span className="text-[#8e9297] font-medium group-hover:text-[#dcddde] truncate">
+                    {member.username}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isCreatingCommunity && (
         <CreateCommunityModal 
