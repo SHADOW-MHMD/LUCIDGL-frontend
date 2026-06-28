@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare, Code2, BarChart2, Settings } from "lucide-react";
+import { Home, Play, MessageSquare, LogIn, LogOut, Compass, UserCircle, PlusSquare, Code2, BarChart2, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function Navigation() {
@@ -13,7 +13,7 @@ export default function Navigation() {
     { href: "/", label: "Home", icon: Home },
     { href: "/reels", label: "Reels", icon: Play },
     { href: "/messages", label: "DMs", icon: MessageSquare },
-    { href: "/leaderboard", label: "Rank", icon: BarChart3 },
+    { href: "/discover", label: "Discover", icon: Compass },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
     { href: "/code", label: "Code Hub", icon: Code2 },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },

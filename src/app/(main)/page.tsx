@@ -3,9 +3,20 @@
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { ArrowRight, Zap, Shield, LayoutGrid } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, signIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push('/reels');
+    }
+  }, [user, router]);
+
+  if (user) return null;
 
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -27,21 +38,15 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-20">
-        {!user ? (
-          <div className="p-1 rounded-2xl bg-gradient-to-r from-blue-500/30 to-indigo-500/30">
-            <button className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/5 text-white font-medium shadow-2xl transition-all hover:bg-slate-800 flex items-center justify-center gap-2 group">
-              Sign In to Begin
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        ) : (
-          <Link href="/reels" className="p-1 rounded-2xl bg-gradient-to-r from-blue-500/50 to-indigo-500/50 hover:from-blue-400/60 hover:to-indigo-400/60 transition-all cursor-pointer">
-            <div className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/40 backdrop-blur-xl border border-white/10 text-white font-medium shadow-2xl flex items-center justify-center gap-2">
-              Launch App
-              <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
-        )}
+        <div className="p-1 rounded-2xl bg-gradient-to-r from-blue-500/30 to-indigo-500/30">
+          <button 
+            onClick={signIn}
+            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/80 backdrop-blur-xl border border-white/5 text-white font-medium shadow-2xl transition-all hover:bg-slate-800 flex items-center justify-center gap-2 group"
+          >
+            Sign in to start earning XP
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
