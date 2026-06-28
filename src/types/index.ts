@@ -79,3 +79,21 @@ export interface SupabaseMessage {
   created_at: string;
   profiles?: Profile;
 }
+
+export interface CodeFile {
+  id: string;
+  user_id: string;
+  telegram_file_id: string;
+  file_name: string;
+  file_type: 'zip' | 'apk';
+  caption?: string;
+  download_count: number;
+  created_at: string;
+  username?: string;
+}
+
+export interface Analytics {
+  impressions: number;
+  downloads: number;
+  upvotes_received: number;
+}

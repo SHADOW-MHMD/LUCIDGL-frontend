@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare } from "lucide-react";
+import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare, Code2, BarChart2, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function Navigation() {
@@ -15,6 +15,9 @@ export default function Navigation() {
     { href: "/messages", label: "DMs", icon: MessageSquare },
     { href: "/leaderboard", label: "Rank", icon: BarChart3 },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
+    { href: "/code", label: "Code Hub", icon: Code2 },
+    { href: "/analytics", label: "Analytics", icon: BarChart2 },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (
