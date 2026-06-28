@@ -3,6 +3,7 @@ import { Send, Hash, Users, Trash2, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
+import { ContextMenu } from "@/components/ui/ContextMenu";
 
 interface ChatAreaProps {
   channelId: string;
@@ -12,37 +13,7 @@ interface ChatAreaProps {
   onChannelDeleted?: () => void;
 }
 
-// ponytail: tiny context menu component, no library needed
-function ContextMenu({ x, y, items, onClose }: {
-  x: number; y: number;
-  items: { label: string; danger?: boolean; onClick: () => void }[];
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const close = () => onClose();
-    window.addEventListener('click', close);
-    window.addEventListener('contextmenu', close);
-    return () => { window.removeEventListener('click', close); window.removeEventListener('contextmenu', close); };
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed z-[100] bg-[#111214] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[160px]"
-      style={{ left: x, top: y }}
-      onClick={e => e.stopPropagation()}
-    >
-      {items.map((item, i) => (
-        <button
-          key={i}
-          onClick={() => { item.onClick(); onClose(); }}
-          className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${item.danger ? 'text-red-400 hover:bg-red-500/20' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+// ContextMenu imported from ui/ContextMenu
 
 export function ChatArea({ channelId, channelName, type, communityRole, onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
