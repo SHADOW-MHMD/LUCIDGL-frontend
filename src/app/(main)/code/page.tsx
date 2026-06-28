@@ -133,7 +133,17 @@ export default function CodeHubPage() {
                   type="file"
                   accept=".zip,.apk"
                   className="hidden"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && file.size > 20 * 1024 * 1024) {
+                      setUploadError("File exceeds 20MB limit");
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    } else {
+                      setSelectedFile(file ?? null);
+                      setUploadError(null);
+                    }
+                  }}
                 />
                 {selectedFile ? (
                   <p className="text-white/90 font-medium">{selectedFile.name}</p>
@@ -141,7 +151,7 @@ export default function CodeHubPage() {
                   <>
                     <FileArchive className="mx-auto text-white/30 mb-2" size={32} />
                     <p className="text-white/50 text-sm">Click to select a <span className="text-green-400 font-medium">.zip</span> or <span className="text-blue-400 font-medium">.apk</span> file</p>
-                    <p className="text-white/30 text-xs mt-1">Max size: 40 MB</p>
+                    <p className="text-white/30 text-xs mt-1">Max size: 20 MB</p>
                   </>
                 )}
               </div>
