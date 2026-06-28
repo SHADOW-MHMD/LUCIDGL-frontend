@@ -1,5 +1,6 @@
-import { Plus, Settings, Hash, MoreVertical, Check, X } from "lucide-react";
-import type { Channel, Community } from "@/types";
+import { Plus, Settings, Hash, MoreVertical, Check, X, Trophy } from "lucide-react";
+import type { Channel, Community, Profile } from "@/types";
+import { LevelBadge } from "@/components/ui/LevelBadge";
 
 interface ChannelSidebarProps {
   channels: Channel[];
@@ -10,6 +11,7 @@ interface ChannelSidebarProps {
   userId?: string;
   onSelectChannel: (channel: Channel) => void;
   onOpenSettings: () => void;
+  onOpenLeaderboard: () => void;
   onCreateDM: () => void;
   onCreateChannel: () => void;
   renamingChannelId: string | null;
@@ -20,15 +22,14 @@ interface ChannelSidebarProps {
   onChannelCtx: (e: React.MouseEvent, ch: Channel) => void;
   hoveredChannelId: string | null;
   onHoverChannel: (id: string | null) => void;
-  userAvatar?: string;
-  userName?: string;
+  userProfile?: Profile;
 }
 
 export function ChannelSidebar({
   channels, selectedChannel, selectedCommunityId, selectedCommunity, isAdmin, userId,
-  onSelectChannel, onOpenSettings, onCreateDM, onCreateChannel,
+  onSelectChannel, onOpenSettings, onOpenLeaderboard, onCreateDM, onCreateChannel,
   renamingChannelId, renameValue, onRenameChange, onRenameSubmit, onRenameCancel,
-  onChannelCtx, hoveredChannelId, onHoverChannel, userAvatar, userName
+  onChannelCtx, hoveredChannelId, onHoverChannel, userProfile
 }: ChannelSidebarProps) {
   return (
     <div className="w-60 shrink-0 bg-[#2b2d31]/80 backdrop-blur-md flex flex-col border-r border-white/5">
@@ -37,21 +38,29 @@ export function ChannelSidebar({
         <h2 className="text-white font-bold text-sm tracking-wide truncate flex-1">
           {selectedCommunityId === null ? 'Direct Messages' : selectedCommunity?.name || 'Community'}
         </h2>
-        {/* Gear icon → Server Settings */}
-        {selectedCommunityId !== null && isAdmin && (
+        <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={onOpenSettings}
-            className="p-1 text-white/40 hover:text-white transition-colors rounded"
-            title="Server Settings"
+            onClick={onOpenLeaderboard}
+            className="p-1 text-amber-500/80 hover:text-amber-400 transition-colors rounded"
+            title="Leaderboard"
           >
-            <Settings className="w-4 h-4" />
+            <Trophy className="w-4 h-4" />
           </button>
-        )}
-        {selectedCommunityId === null && (
-          <button onClick={onCreateDM} className="p-1 text-white/40 hover:text-white transition-colors" title="New DM">
-            <Plus className="w-4 h-4" />
-          </button>
-        )}
+          {selectedCommunityId !== null && isAdmin && (
+            <button
+              onClick={onOpenSettings}
+              className="p-1 text-white/40 hover:text-white transition-colors rounded"
+              title="Server Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+          {selectedCommunityId === null && (
+            <button onClick={onCreateDM} className="p-1 text-white/40 hover:text-white transition-colors" title="New DM">
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Channel list */}
@@ -132,10 +141,13 @@ export function ChannelSidebar({
       {/* User bar at bottom */}
       <div className="h-14 bg-black/20 shrink-0 flex items-center px-3 gap-2 border-t border-white/5">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shrink-0 overflow-hidden">
-          {userAvatar && <img src={userAvatar} alt="" className="w-full h-full object-cover" />}
+          {userProfile?.avatar_url && <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />}
         </div>
         <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-white text-xs font-bold truncate">{userName}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-white text-xs font-bold truncate">{userProfile?.username || 'Unknown'}</span>
+            <LevelBadge level={userProfile?.current_level || 0} />
+          </div>
           <span className="text-white/40 text-[10px]">Online</span>
         </div>
       </div>

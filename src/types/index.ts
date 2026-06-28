@@ -49,6 +49,9 @@ export interface Profile {
   id: string;
   username: string;
   avatar_url?: string;
+  total_xp?: number;
+  current_level?: number;
+  current_streak?: number;
 }
 
 export interface Community {

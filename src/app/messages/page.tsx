@@ -15,6 +15,7 @@ import { ContextMenu } from "@/components/ui/ContextMenu";
 import { ServerRail } from "@/components/chat/ServerRail";
 import { ChannelSidebar } from "@/components/chat/ChannelSidebar";
 import { MemberSidebar } from "@/components/chat/MemberSidebar";
+import { LeaderboardModal } from "@/components/chat/LeaderboardModal";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -28,6 +29,7 @@ export default function MessagesPage() {
   const [members, setMembers] = useState<MemberWithRole[]>([]);
   const [currentRole, setCurrentRole] = useState<string | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [userProfile, setUserProfile] = useState<Profile | undefined>(undefined);
 
   // Modal state
   const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
@@ -35,6 +37,7 @@ export default function MessagesPage() {
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [serverSettings, setServerSettings] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Inline rename state for channels
   const [renamingChannelId, setRenamingChannelId] = useState<string | null>(null);
@@ -47,17 +50,38 @@ export default function MessagesPage() {
   const isAdmin = currentRole === 'owner' || currentRole === 'admin';
   const selectedCommunity = communities.find(c => c.id === selectedCommunityId);
 
-  // Fetch communities
+  // Fetch communities & user profile
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const loadData = async () => {
       const { data } = await supabase
         .from('community_members')
         .select('community_id, role, communities(id, name, logo_url, owner_id)')
         .eq('user_id', user.id);
       if (data) setCommunities(data.map(m => ({ ...(m.communities as any), role: m.role })) as Community[]);
+
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (prof) {
+        let profileData = prof as Profile;
+        // Fetch gamification from D1
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(user as any).access_token || ''}`
+            },
+            body: JSON.stringify({ userIds: [user.id] })
+          });
+          const gamificationMap = await res.json();
+          if (gamificationMap && gamificationMap[user.id]) {
+            profileData = { ...profileData, ...gamificationMap[user.id] };
+          }
+        } catch(e) {}
+        setUserProfile(profileData);
+      }
     };
-    fetch();
+    loadData();
   }, [user]);
 
   // Fetch channels + members when community changes
@@ -156,6 +180,7 @@ export default function MessagesPage() {
         userId={user.id}
         onSelectChannel={setSelectedChannel}
         onOpenSettings={() => setServerSettings(true)}
+        onOpenLeaderboard={() => setShowLeaderboard(true)}
         onCreateDM={() => setIsCreatingDM(true)}
         onCreateChannel={() => setIsCreatingChannel(true)}
         renamingChannelId={renamingChannelId}
@@ -166,8 +191,7 @@ export default function MessagesPage() {
         onChannelCtx={handleChannelCtx}
         hoveredChannelId={hoveredChannelId}
         onHoverChannel={setHoveredChannelId}
-        userAvatar={user.user_metadata?.avatar_url}
-        userName={user.user_metadata?.full_name || user.email?.split('@')[0]}
+        userProfile={userProfile}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -235,6 +259,9 @@ export default function MessagesPage() {
           onMemberKicked={uid => setMembers(prev => prev.filter(m => m.id !== uid))}
           onRoleChanged={(uid, role) => setMembers(prev => prev.map(m => m.id === uid ? { ...m, role } : m))}
         />
+      )}
+      {showLeaderboard && (
+        <LeaderboardModal communityId={selectedCommunityId} onClose={() => setShowLeaderboard(false)} />
       )}
 
       {/* Channel right-click / ⋯ context menu */}

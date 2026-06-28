@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import type { SupabaseMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { ContextMenu } from "@/components/ui/ContextMenu";
+import { LevelBadge } from "@/components/ui/LevelBadge";
 
 interface ChatAreaProps {
   channelId: string;
@@ -28,33 +29,66 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchMessages = async () => {
-      setLoading(true);
       const { data } = await supabase
         .from('messages')
         .select('id, channel_id, user_id, text, created_at, profiles(id, username, avatar_url)')
         .eq('channel_id', channelId)
-        .order('created_at', { ascending: true })
-        .limit(100);
-      if (data && isMounted) setMessages(data as any);
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (data && isMounted) {
+        let msgs = data.reverse() as unknown as SupabaseMessage[];
+        
+        // Fetch gamification from D1 for all unique users
+        const userIds = [...new Set(msgs.map(m => m.user_id))];
+        if (userIds.length > 0 && user) {
+          try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(user as any).access_token || ''}`
+              },
+              body: JSON.stringify({ userIds })
+            });
+            const levelsMap = await res.json();
+            msgs = msgs.map(m => {
+              if (levelsMap[m.user_id] && m.profiles) {
+                m.profiles = { ...m.profiles, ...levelsMap[m.user_id] };
+              }
+              return m;
+            });
+          } catch(e) {}
+        }
+        
+        setMessages(msgs);
+      }
       if (isMounted) setLoading(false);
     };
     fetchMessages();
 
     const sub = supabase
-      .channel(`room:${channelId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
-        async (payload) => {
-          const { data: profile } = await supabase.from('profiles').select('id, username, avatar_url').eq('id', payload.new.user_id).single();
-          if (isMounted) setMessages(prev => [...prev, { ...payload.new, profiles: profile } as SupabaseMessage]);
+      .channel(`chat:${channelId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` }, async payload => {
+        const { data: profile } = await supabase.from('profiles').select('id, username, avatar_url').eq('id', payload.new.user_id).single();
+        let finalProfile = profile;
+        if (user && finalProfile) {
+          try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(user as any).access_token || ''}` },
+              body: JSON.stringify({ userIds: [payload.new.user_id] })
+            });
+            const levelsMap = await res.json();
+            if (levelsMap[payload.new.user_id]) finalProfile = { ...finalProfile, ...levelsMap[payload.new.user_id] };
+          } catch(e) {}
         }
-      )
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
-        (payload) => {
-          if (isMounted) setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-        }
-      )
+        if (isMounted) setMessages(prev => [...prev, { ...payload.new, profiles: finalProfile } as SupabaseMessage]);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` }, payload => {
+        if (isMounted) setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => { isMounted = false; supabase.removeChannel(sub); };
@@ -65,7 +99,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   }, [messages]);
 
   const deleteMessage = useCallback(async (msgId: string) => {
-    // Store previous messages to revert on failure
     const prevMessages = [...messages];
     setMessages(prev => prev.filter(m => m.id !== msgId));
     
@@ -73,20 +106,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
     if (error) {
       console.error("Failed to delete message:", error);
       alert(`Failed to delete message: ${error.message}`);
-      setMessages(prevMessages); // revert
+      setMessages(prevMessages);
     }
   }, [messages]);
-
-  const handleDeleteChannel = async () => {
-    if (!window.confirm(`Delete #${channelName}? All messages will be gone.`)) return;
-    const { error } = await supabase.from('channels').delete().eq('id', channelId);
-    if (error) {
-      console.error("Failed to delete channel:", error);
-      alert(`Failed to delete channel: ${error.message}`);
-    } else {
-      onChannelDeleted?.();
-    }
-  };
 
   const handleMsgContextMenu = (e: React.MouseEvent, msg: SupabaseMessage) => {
     const canDelete = msg.user_id === user?.id || isAdmin;
@@ -95,18 +117,28 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
     setCtxMenu({ x: e.clientX, y: e.clientY, msgId: msg.id });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !user) return;
     const t = text;
     setText("");
-    const { error } = await supabase.from("messages").insert({ channel_id: channelId, user_id: user.id, text: t.trim() });
-    if (error) { console.error(error); setText(t); }
+    const { error } = await supabase.from('messages').insert({ channel_id: channelId, user_id: user.id, text: t.trim() });
+    if (error) {
+      console.error("Failed to send:", error);
+      setText(t);
+      alert("Failed to send message.");
+    } else {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/record-message`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(user as any).access_token || ''}`
+        }
+      }).catch(console.error);
+    }
   };
 
   return (
     <div className="flex flex-col h-full bg-black/20 backdrop-blur-md relative">
-      {/* Header */}
       <div className="h-14 border-b border-white/10 flex items-center px-5 shrink-0 z-10 bg-white/5 justify-between">
         <div className="flex items-center gap-2">
           {type === 'community' ? <Hash className="w-5 h-5 text-white/50" /> : <Users className="w-5 h-5 text-white/50" />}
@@ -114,7 +146,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
         </div>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 flex flex-col gap-0.5 no-scrollbar">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
@@ -143,7 +174,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                 onMouseLeave={() => setHoveredMsgId(null)}
                 onContextMenu={e => handleMsgContextMenu(e, msg)}
               >
-                {/* Avatar / timestamp for consecutive */}
                 {!isConsecutive ? (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shrink-0 overflow-hidden shadow-md mt-0.5">
                     {msg.profiles?.avatar_url && <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
@@ -159,10 +189,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                 <div className="flex-1 min-w-0">
                   {!isConsecutive && (
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-white font-medium text-sm hover:underline cursor-pointer">
-                        {msg.profiles?.username || "Unknown"}
-                      </span>
-                      <span className="text-[11px] text-white/30">
+                      <span className="font-medium text-white text-[15px]">{msg.profiles?.username || 'Unknown'}</span>
+                      <LevelBadge level={(msg.profiles as any)?.current_level || 0} />
+                      <span className="text-[11px] text-white/40">
                         {new Date(msg.created_at).toLocaleDateString()} {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -210,7 +239,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2 shrink-0">
-        <form onSubmit={handleSubmit} className="relative flex items-center">
+        <form onSubmit={handleSend} className="relative flex items-center">
           {/* ponytail: delete channel trigger moved to server settings — no button here */}
           <input
             type="text"
