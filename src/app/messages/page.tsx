@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Plus, MessageSquare, Hash, Compass, ArrowLeft, Users, UserPlus, Trash2, LogOut } from "lucide-react";
+import { ShieldAlert, Plus, MessageSquare, Hash, Compass, ArrowLeft, Users, UserPlus, Settings, MoreVertical, Trash2, Edit2, Check, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Community, Channel, Profile } from "@/types";
 import { ChatArea } from "@/components/chat/ChatArea";
@@ -10,10 +10,38 @@ import { CreateCommunityModal } from "@/components/chat/CreateCommunityModal";
 import { CreateDMModal } from "@/components/chat/CreateDMModal";
 import { CreateChannelModal } from "@/components/chat/CreateChannelModal";
 import { AddMemberModal } from "@/components/chat/AddMemberModal";
+import { ServerSettingsModal } from "@/components/chat/ServerSettingsModal";
 import Link from "next/link";
 
-interface MemberWithRole extends Profile {
-  role: string;
+interface MemberWithRole extends Profile { role: string; }
+
+// ponytail: inline context menu — no library
+function ContextMenu({ x, y, items, onClose }: {
+  x: number; y: number;
+  items: { label: string; danger?: boolean; onClick: () => void }[];
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const h = () => onClose();
+    window.addEventListener('click', h);
+    window.addEventListener('contextmenu', h);
+    return () => { window.removeEventListener('click', h); window.removeEventListener('contextmenu', h); };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed z-[200] bg-[#111214] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[160px]"
+      style={{ left: x, top: y }}
+      onClick={e => e.stopPropagation()}
+    >
+      {items.map((item, i) => (
+        <button key={i} onClick={() => { item.onClick(); onClose(); }}
+          className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${item.danger ? 'text-red-400 hover:bg-red-500/20' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function MessagesPage() {
@@ -21,290 +49,288 @@ export default function MessagesPage() {
 
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
-
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [members, setMembers] = useState<MemberWithRole[]>([]);
+  const [currentRole, setCurrentRole] = useState<string | undefined>(undefined);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [loading, setLoading] = useState(true);
 
+  // Modal state
   const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
   const [isCreatingDM, setIsCreatingDM] = useState(false);
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<MemberWithRole[]>([]);
-  const [currentRole, setCurrentRole] = useState<string | undefined>(undefined);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [serverSettings, setServerSettings] = useState(false);
+
+  // Inline rename state for channels
+  const [renamingChannelId, setRenamingChannelId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  // Context menus
+  const [channelCtx, setChannelCtx] = useState<{ x: number; y: number; channel: Channel } | null>(null);
+  const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
 
   const isAdmin = currentRole === 'owner' || currentRole === 'admin';
+  const selectedCommunity = communities.find(c => c.id === selectedCommunityId);
 
-  // Fetch communities on mount
+  // Fetch communities
   useEffect(() => {
     if (!user) return;
-    const fetchInitialData = async () => {
+    const fetch = async () => {
       setLoading(true);
-      const { data: memberData } = await supabase
+      const { data } = await supabase
         .from('community_members')
         .select('community_id, role, communities(id, name, logo_url, owner_id)')
         .eq('user_id', user.id);
-
-      if (memberData) {
-        const comms = memberData.map(m => ({
-          ...(m.communities as any),
-          role: m.role,
-        })) as Community[];
-        setCommunities(comms);
-      }
+      if (data) setCommunities(data.map(m => ({ ...(m.communities as any), role: m.role })) as Community[]);
       setLoading(false);
     };
-    fetchInitialData();
+    fetch();
   }, [user]);
 
-  // When community changes, fetch channels + members
+  // Fetch channels + members when community changes
   useEffect(() => {
     if (!user) return;
-
-    const fetchChannels = async () => {
+    const fetch = async () => {
       if (selectedCommunityId === null) {
-        // Fetch DMs
-        const { data: dmMembers } = await supabase
+        const { data } = await supabase
           .from('channel_members')
           .select('channel_id, channels(id, name, type, channel_members(profiles(id, username, avatar_url)))')
           .eq('user_id', user.id);
-
-        if (dmMembers) {
-          const dms = dmMembers
-            .map(m => m.channels)
-            .filter(c => c && (c as any).type === 'dm') as unknown as Channel[];
+        if (data) {
+          const dms = data.map(m => m.channels).filter(c => c && (c as any).type === 'dm') as unknown as Channel[];
           setChannels(dms);
-          if (dms.length > 0) setSelectedChannel(dms[0]);
-          else setSelectedChannel(null);
+          setSelectedChannel(dms[0] || null);
         }
         setCurrentRole(undefined);
         setMembers([]);
       } else {
-        // Fetch community channels
-        const { data: commChannels } = await supabase
-          .from('channels')
-          .select('*')
-          .eq('community_id', selectedCommunityId)
-          .order('created_at', { ascending: true });
-
-        if (commChannels) {
-          setChannels(commChannels as Channel[]);
-          if (commChannels.length > 0) setSelectedChannel(commChannels[0] as Channel);
-          else setSelectedChannel(null);
+        const [{ data: chans }, { data: mems }] = await Promise.all([
+          supabase.from('channels').select('*').eq('community_id', selectedCommunityId).order('created_at'),
+          supabase.from('community_members').select('role, profiles(id, username, avatar_url)').eq('community_id', selectedCommunityId)
+        ]);
+        if (chans) {
+          setChannels(chans as Channel[]);
+          setSelectedChannel(chans[0] as Channel || null);
         }
-
-        // Fetch community members with roles
-        const { data: commMembers } = await supabase
-          .from('community_members')
-          .select('role, profiles(id, username, avatar_url)')
-          .eq('community_id', selectedCommunityId);
-
-        if (commMembers) {
-          const mems = commMembers.map(m => ({
-            ...(m.profiles as any),
-            role: m.role,
-          })) as MemberWithRole[];
-          setMembers(mems);
-          // ponytail: derive current user's role from the member list
-          const me = mems.find(m => m.id === user.id);
-          setCurrentRole(me?.role);
+        if (mems) {
+          const withRoles = mems.map(m => ({ ...(m.profiles as any), role: m.role })) as MemberWithRole[];
+          setMembers(withRoles);
+          setCurrentRole(withRoles.find(m => m.id === user.id)?.role);
         }
       }
     };
-
-    fetchChannels();
+    fetch();
   }, [user, selectedCommunityId, refreshTrigger]);
 
-  // ponytail: delete community → Postgres CASCADE does the rest
-  const handleDeleteCommunity = async (commId: string) => {
-    if (!window.confirm("Delete this server permanently? All channels and messages will be wiped.")) return;
-    const { error } = await supabase.from('communities').delete().eq('id', commId);
-    if (error) { console.error("Failed to delete community", error); return; }
-    setCommunities(prev => prev.filter(c => c.id !== commId));
-    if (selectedCommunityId === commId) {
-      setSelectedCommunityId(null);
-      setChannels([]);
-      setSelectedChannel(null);
-    }
+  const handleDeleteChannel = useCallback(async (ch: Channel) => {
+    if (!window.confirm(`Delete #${ch.name}?`)) return;
+    await supabase.from('channels').delete().eq('id', ch.id);
+    setChannels(prev => prev.filter(c => c.id !== ch.id));
+    if (selectedChannel?.id === ch.id) setSelectedChannel(null);
+  }, [selectedChannel]);
+
+  const handleRenameChannel = async (ch: Channel) => {
+    if (!renameValue.trim() || renameValue === ch.name) { setRenamingChannelId(null); return; }
+    const slug = renameValue.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+    await supabase.from('channels').update({ name: slug }).eq('id', ch.id);
+    setChannels(prev => prev.map(c => c.id === ch.id ? { ...c, name: slug } : c));
+    setRenamingChannelId(null);
   };
 
-  const handleKickMember = async (targetId: string) => {
-    if (!selectedCommunityId) return;
-    const { error } = await supabase
-      .from('community_members')
-      .delete()
-      .eq('community_id', selectedCommunityId)
-      .eq('user_id', targetId);
-    if (error) { console.error("Failed to kick member", error); return; }
-    setMembers(prev => prev.filter(m => m.id !== targetId));
+  const handleChannelCtx = (e: React.MouseEvent, ch: Channel) => {
+    if (!isAdmin) return;
+    e.preventDefault();
+    setChannelCtx({ x: e.clientX, y: e.clientY, channel: ch });
   };
 
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] gap-6 text-center">
-        <ShieldAlert className="w-16 h-16 text-red-400 opacity-50" />
-        <h2 className="text-2xl font-bold text-white/90">Authentication Required</h2>
-        <p className="text-slate-400">Sign in to access messages and communities.</p>
-      </div>
-    );
-  }
+  if (!user) return (
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] gap-6 text-center">
+      <ShieldAlert className="w-16 h-16 text-red-400 opacity-50" />
+      <h2 className="text-2xl font-bold text-white/90">Authentication Required</h2>
+      <p className="text-slate-400">Sign in to access messages and communities.</p>
+    </div>
+  );
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-transparent font-sans">
 
-      {/* 1. SERVER SIDEBAR */}
-      <div className="w-[80px] shrink-0 bg-white/5 backdrop-blur-xl flex flex-col items-center py-4 gap-3 overflow-y-auto no-scrollbar border-r border-white/10 relative z-20">
-
-        <Link href="/" className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-300">
+      {/* ── 1. SERVER RAIL ── */}
+      <div className="w-[72px] shrink-0 bg-black/40 backdrop-blur-xl flex flex-col items-center py-3 gap-2 overflow-y-auto no-scrollbar border-r border-white/5">
+        <Link href="/" className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="w-8 h-[1px] bg-white/10 my-1 rounded-full" />
+        <div className="w-8 h-px bg-white/10 my-1" />
 
+        {/* DMs */}
         <button
           onClick={() => setSelectedCommunityId(null)}
-          className={`relative group w-12 h-12 flex items-center justify-center transition-all duration-300 border ${
+          className={`relative w-12 h-12 flex items-center justify-center transition-all duration-200 ${
             selectedCommunityId === null
-              ? 'bg-blue-500/20 border-blue-500/50 rounded-xl text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-              : 'bg-white/5 border-white/10 rounded-2xl text-white/70 hover:bg-white/10 hover:border-white/20 hover:rounded-xl hover:text-white'
+              ? 'bg-indigo-500 rounded-xl text-white'
+              : 'bg-white/5 rounded-2xl hover:rounded-xl text-white/50 hover:bg-indigo-500/80 hover:text-white'
           }`}
         >
           <MessageSquare className="w-6 h-6" />
-          {selectedCommunityId === null && <div className="absolute -left-3 w-2 h-10 bg-white rounded-r-full" />}
+          {selectedCommunityId === null && <div className="absolute -left-2.5 w-1 h-8 bg-white rounded-r-full" />}
         </button>
 
-        <div className="w-8 h-[1px] bg-white/10 my-1 rounded-full" />
+        <div className="w-8 h-px bg-white/10 my-1" />
 
+        {/* Community icons — no delete badge, clean like Discord */}
         {communities.map(comm => (
-          <div key={comm.id} className="relative group/server">
-            <button
-              onClick={() => setSelectedCommunityId(comm.id)}
-              className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300 border overflow-hidden ${
-                selectedCommunityId === comm.id
-                  ? 'bg-blue-500/20 border-blue-500/50 rounded-xl text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                  : 'bg-white/5 border-white/10 rounded-2xl text-white/70 hover:bg-white/10 hover:border-white/20 hover:rounded-xl hover:text-white'
-              }`}
-            >
-              {comm.logo_url ? (
-                <img src={comm.logo_url} alt="" className="w-full h-full object-cover rounded-inherit" />
-              ) : (
-                <span className="font-bold text-lg">{comm.name.substring(0, 1).toUpperCase()}</span>
-              )}
-              {selectedCommunityId === comm.id && <div className="absolute -left-3 w-2 h-10 bg-white rounded-r-full" />}
-              <div className="absolute -left-3 w-2 h-0 bg-white rounded-r-full transition-all group-hover/server:h-5" />
-            </button>
-            {/* ponytail: delete server — only visible to owner/admin on hover */}
-            {(comm.role === 'owner' || comm.role === 'admin') && (
-              <button
-                onClick={() => handleDeleteCommunity(comm.id)}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover/server:opacity-100 transition-opacity z-10"
-                title="Delete server"
-              >
-                <Trash2 className="w-2.5 h-2.5 text-white" />
-              </button>
-            )}
-          </div>
+          <button
+            key={comm.id}
+            onClick={() => setSelectedCommunityId(comm.id)}
+            title={comm.name}
+            className={`relative w-12 h-12 flex items-center justify-center overflow-hidden font-bold text-lg transition-all duration-200 ${
+              selectedCommunityId === comm.id
+                ? 'bg-indigo-500 rounded-xl text-white'
+                : 'bg-white/5 rounded-2xl hover:rounded-xl text-white/60 hover:bg-white/15 hover:text-white'
+            }`}
+          >
+            {comm.logo_url
+              ? <img src={comm.logo_url} alt="" className="w-full h-full object-cover" />
+              : comm.name.substring(0, 2).toUpperCase()
+            }
+            {selectedCommunityId === comm.id && <div className="absolute -left-2.5 w-1 h-8 bg-white rounded-r-full" />}
+          </button>
         ))}
 
         <button
           onClick={() => setIsCreatingCommunity(true)}
-          className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:rounded-xl hover:text-emerald-300 transition-all duration-300 mt-2"
+          className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:rounded-xl text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-all duration-200 mt-1"
+          title="Create Server"
         >
           <Plus className="w-6 h-6" />
         </button>
       </div>
 
-      {/* 2. CHANNEL/DM SIDEBAR */}
-      <div className="w-64 shrink-0 bg-white/5 backdrop-blur-md flex flex-col relative z-10 border-r border-white/10">
+      {/* ── 2. CHANNEL SIDEBAR ── */}
+      <div className="w-60 shrink-0 bg-[#2b2d31]/80 backdrop-blur-md flex flex-col border-r border-white/5">
 
-        <div className="h-14 border-b border-white/10 flex items-center justify-between px-5 shadow-sm shrink-0 bg-white/5 transition-colors">
-          <h2 className="text-white font-bold truncate tracking-wide">
-            {selectedCommunityId === null
-              ? "Direct Messages"
-              : communities.find(c => c.id === selectedCommunityId)?.name || "Community"}
+        {/* Server name header */}
+        <div className="h-12 px-4 border-b border-white/10 flex items-center justify-between shrink-0 shadow-sm">
+          <h2 className="text-white font-bold text-sm tracking-wide truncate flex-1">
+            {selectedCommunityId === null ? 'Direct Messages' : selectedCommunity?.name || 'Community'}
           </h2>
-          <div className="flex items-center gap-2">
-            {selectedCommunityId === null ? (
-              <button onClick={() => setIsCreatingDM(true)} className="text-white/50 hover:text-white transition-colors">
-                <Plus className="w-5 h-5" />
-              </button>
-            ) : (
-              isAdmin && (
-                <button onClick={() => setIsCreatingChannel(true)} className="text-white/50 hover:text-white transition-colors">
-                  <Plus className="w-5 h-5" />
-                </button>
-              )
-            )}
-          </div>
+          {/* Gear icon → Server Settings (Discord pattern) */}
+          {selectedCommunityId !== null && isAdmin && (
+            <button
+              onClick={() => setServerSettings(true)}
+              className="p-1 text-white/40 hover:text-white transition-colors rounded"
+              title="Server Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+          {selectedCommunityId === null && (
+            <button onClick={() => setIsCreatingDM(true)} className="p-1 text-white/40 hover:text-white transition-colors" title="New DM">
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1 no-scrollbar">
-          {channels.length === 0 ? (
-            <div className="text-center px-4 py-8 bg-white/5 border border-white/10 rounded-xl mt-4">
-              <p className="text-white/50 text-sm">No channels found.</p>
+        {/* Channel list */}
+        <div className="flex-1 overflow-y-auto py-2 no-scrollbar">
+          {/* Section header for community channels */}
+          {selectedCommunityId !== null && (
+            <div className="flex items-center justify-between px-4 py-1 mb-1 group">
+              <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Text Channels</span>
+              {isAdmin && (
+                <button onClick={() => setIsCreatingChannel(true)} className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-white transition-all">
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
             </div>
+          )}
+
+          {channels.length === 0 ? (
+            <p className="text-white/30 text-xs text-center mt-8 px-4">No channels yet.</p>
           ) : (
-            channels.map(channel => (
-              <button
-                key={channel.id}
-                onClick={() => setSelectedChannel(channel)}
-                className={`flex items-center w-full px-3 py-2 rounded-xl text-left transition-all duration-200 group border ${
-                  selectedChannel?.id === channel.id
-                    ? 'bg-white/10 border-white/10 text-white shadow-sm'
-                    : 'border-transparent text-white/60 hover:bg-white/5 hover:text-white/90 hover:border-white/5'
-                }`}
+            channels.map(ch => (
+              <div
+                key={ch.id}
+                className="relative group/ch px-2"
+                onMouseEnter={() => setHoveredChannelId(ch.id)}
+                onMouseLeave={() => setHoveredChannelId(null)}
+                onContextMenu={e => handleChannelCtx(e, ch)}
               >
-                {channel.type === 'community' ? (
-                  <Hash className="w-5 h-5 mr-1.5 shrink-0" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-700 mr-2 shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
-                    {(() => {
-                      const otherProfile = channel.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles;
-                      return otherProfile?.avatar_url ? (
-                        <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : "DM";
-                    })()}
+                {renamingChannelId === ch.id ? (
+                  // Inline rename input
+                  <div className="flex items-center gap-1 px-2 py-1">
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleRenameChannel(ch); if (e.key === 'Escape') setRenamingChannelId(null); }}
+                      className="flex-1 bg-black/40 text-white text-sm rounded px-2 py-1 outline-none border border-blue-500/50"
+                    />
+                    <button onClick={() => handleRenameChannel(ch)} className="text-green-400 hover:text-green-300"><Check className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setRenamingChannelId(null)} className="text-white/40 hover:text-white"><X className="w-3.5 h-3.5" /></button>
                   </div>
+                ) : (
+                  <button
+                    onClick={() => setSelectedChannel(ch)}
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                      selectedChannel?.id === ch.id
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/50 hover:bg-white/5 hover:text-white/90'
+                    }`}
+                  >
+                    {ch.type === 'community' ? (
+                      <Hash className="w-4 h-4 shrink-0 text-white/30" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-white/10 shrink-0 overflow-hidden flex items-center justify-center text-[9px] font-bold">
+                        {(() => {
+                          const other = ch.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles;
+                          return other?.avatar_url ? <img src={other.avatar_url} alt="" className="w-full h-full object-cover" /> : 'DM';
+                        })()}
+                      </div>
+                    )}
+                    <span className="truncate flex-1 text-left">
+                      {ch.type === 'dm'
+                        ? (ch.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles?.username || 'DM')
+                        : ch.name}
+                    </span>
+                    {/* Hover ⋯ button for channel options */}
+                    {isAdmin && ch.type === 'community' && hoveredChannelId === ch.id && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setChannelCtx({ x: e.currentTarget.getBoundingClientRect().right, y: e.currentTarget.getBoundingClientRect().bottom, channel: ch }); }}
+                        className="p-0.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </button>
                 )}
-                <span className="truncate font-medium flex-1">
-                  {channel.type === 'dm' ? (
-                    (() => {
-                      const otherProfile = channel.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles;
-                      return otherProfile?.username || "Unnamed DM";
-                    })()
-                  ) : (
-                    channel.name || "Unnamed Channel"
-                  )}
-                </span>
-              </button>
+              </div>
             ))
           )}
         </div>
 
-        <div className="h-16 bg-black/20 shrink-0 flex items-center px-4 py-2 gap-3 border-t border-white/10 backdrop-blur-xl">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shrink-0 overflow-hidden shadow-lg shadow-blue-500/20">
-            {user?.user_metadata?.avatar_url && (
-              <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full object-cover" />
-            )}
+        {/* User bar at bottom */}
+        <div className="h-14 bg-black/20 shrink-0 flex items-center px-3 gap-2 border-t border-white/5">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shrink-0 overflow-hidden">
+            {user?.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full object-cover" />}
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-white text-sm font-bold truncate">
-              {user?.user_metadata?.full_name || user?.email?.split('@')[0] || "You"}
-            </span>
-            <span className="text-white/50 text-xs truncate">#Online</span>
+            <span className="text-white text-xs font-bold truncate">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'}</span>
+            <span className="text-white/40 text-[10px]">Online</span>
           </div>
         </div>
       </div>
 
-      {/* 3. MAIN CHAT AREA */}
-      <div className="flex-1 bg-transparent relative z-0 flex flex-col">
+      {/* ── 3. CHAT AREA ── */}
+      <div className="flex-1 flex flex-col min-w-0">
         {selectedChannel ? (
           <ChatArea
             channelId={selectedChannel.id}
             channelName={
               selectedChannel.type === 'dm'
-                ? (selectedChannel.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles?.username || "Direct Message")
-                : (selectedChannel.name || "chat")
+                ? (selectedChannel.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles?.username || 'DM')
+                : (selectedChannel.name || 'chat')
             }
             type={selectedChannel.type}
             communityRole={currentRole}
@@ -314,70 +340,47 @@ export default function MessagesPage() {
             }}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-black/20 backdrop-blur-md">
-            <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-              <Compass className="w-12 h-12 text-white/30" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-black/10">
+            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+              <Compass className="w-10 h-10 text-white/20" />
             </div>
-            <h2 className="text-white/70 text-2xl font-bold mb-2 tracking-wide">No channel selected</h2>
-            <p className="text-white/40 max-w-sm">Select a channel from the sidebar or create a new one to start chatting.</p>
+            <h2 className="text-white/60 text-xl font-bold mb-2">No channel selected</h2>
+            <p className="text-white/30 max-w-sm text-sm">Pick a channel from the sidebar to start chatting.</p>
           </div>
         )}
       </div>
 
-      {/* 4. MEMBER LIST SIDEBAR */}
+      {/* ── 4. MEMBERS SIDEBAR ── */}
       {selectedCommunityId !== null && selectedChannel?.type === 'community' && (
-        <div className="w-64 shrink-0 bg-white/5 backdrop-blur-xl flex flex-col border-l border-white/10 relative z-10">
-          <div className="h-14 border-b border-white/10 flex items-center justify-between px-5 shadow-sm shrink-0 bg-white/5">
-            <div className="flex items-center">
-              <Users className="w-5 h-5 text-white/50 mr-2" />
-              <span className="text-white font-bold text-sm tracking-wide">Members</span>
-            </div>
+        <div className="w-60 shrink-0 bg-[#2b2d31]/60 backdrop-blur-xl flex flex-col border-l border-white/5">
+          <div className="h-12 px-4 border-b border-white/10 flex items-center justify-between shrink-0">
+            <span className="text-white font-bold text-sm">Members</span>
             {isAdmin && (
-              <button
-                onClick={() => setIsAddingMember(true)}
-                className="text-white/50 hover:text-emerald-400 transition-colors"
-                title="Add Member"
-              >
-                <UserPlus className="w-5 h-5" />
+              <button onClick={() => setIsAddingMember(true)} className="text-white/40 hover:text-emerald-400 transition-colors" title="Add Member">
+                <UserPlus className="w-4 h-4" />
               </button>
             )}
           </div>
-
-          <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
-            {/* Group by role */}
-            {['owner', 'admin', 'member'].map(roleGroup => {
-              const groupMembers = members.filter(m => m.role === roleGroup);
-              if (groupMembers.length === 0) return null;
+          <div className="flex-1 overflow-y-auto p-3 no-scrollbar">
+            {['owner', 'admin', 'member'].map(rg => {
+              const group = members.filter(m => m.role === rg);
+              if (!group.length) return null;
               return (
-                <div key={roleGroup} className="mb-4">
-                  <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-3 px-2">
-                    {roleGroup}s — {groupMembers.length}
-                  </h3>
-                  <div className="flex flex-col gap-1">
-                    {groupMembers.map(member => (
-                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 border border-transparent hover:border-white/5 cursor-pointer transition-all duration-200 group/member">
-                        <div className="relative">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden shadow-md">
-                            {member.avatar_url && <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />}
-                          </div>
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-sm"></div>
+                <div key={rg} className="mb-4">
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5 px-1">
+                    {rg}s — {group.length}
+                  </p>
+                  {group.map(m => (
+                    <div key={m.id} className="flex items-center gap-2.5 px-1 py-1.5 rounded-md hover:bg-white/5 transition-colors group/m cursor-pointer">
+                      <div className="relative shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden">
+                          {m.avatar_url && <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />}
                         </div>
-                        <span className="text-white/70 font-medium group-hover/member:text-white truncate flex-1">
-                          {member.username}
-                        </span>
-                        {/* ponytail: kick button — only for admins, not for self, not for other owners */}
-                        {isAdmin && member.id !== user.id && member.role !== 'owner' && (
-                          <button
-                            onClick={() => handleKickMember(member.id)}
-                            className="opacity-0 group-hover/member:opacity-100 p-1 text-white/30 hover:text-red-400 transition-all rounded"
-                            title="Kick member"
-                          >
-                            <LogOut className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#2b2d31] rounded-full" />
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-white/60 text-sm font-medium group-hover/m:text-white transition-colors truncate flex-1">{m.username}</span>
+                    </div>
+                  ))}
                 </div>
               );
             })}
@@ -385,44 +388,55 @@ export default function MessagesPage() {
         </div>
       )}
 
+      {/* ── MODALS ── */}
       {isCreatingCommunity && (
-        <CreateCommunityModal
-          onClose={() => setIsCreatingCommunity(false)}
-          onCreated={(id) => {
-            setIsCreatingCommunity(false);
-            setSelectedCommunityId(id);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-        />
+        <CreateCommunityModal onClose={() => setIsCreatingCommunity(false)} onCreated={id => { setIsCreatingCommunity(false); setSelectedCommunityId(id); setRefreshTrigger(t => t + 1); }} />
       )}
       {isCreatingDM && (
-        <CreateDMModal
-          onClose={() => setIsCreatingDM(false)}
-          onCreated={(id) => {
-            setIsCreatingDM(false);
-            setSelectedCommunityId(null);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-        />
+        <CreateDMModal onClose={() => setIsCreatingDM(false)} onCreated={id => { setIsCreatingDM(false); setSelectedCommunityId(null); setRefreshTrigger(t => t + 1); }} />
       )}
       {isCreatingChannel && selectedCommunityId && (
-        <CreateChannelModal
-          communityId={selectedCommunityId}
-          onClose={() => setIsCreatingChannel(false)}
-          onCreated={() => {
-            setIsCreatingChannel(false);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-        />
+        <CreateChannelModal communityId={selectedCommunityId} onClose={() => setIsCreatingChannel(false)} onCreated={() => { setIsCreatingChannel(false); setRefreshTrigger(t => t + 1); }} />
       )}
       {isAddingMember && selectedCommunityId && (
-        <AddMemberModal
+        <AddMemberModal communityId={selectedCommunityId} onClose={() => setIsAddingMember(false)} onAdded={() => { setIsAddingMember(false); setRefreshTrigger(t => t + 1); }} />
+      )}
+      {serverSettings && selectedCommunityId && selectedCommunity && (
+        <ServerSettingsModal
           communityId={selectedCommunityId}
-          onClose={() => setIsAddingMember(false)}
-          onAdded={() => {
-            setIsAddingMember(false);
-            setRefreshTrigger(prev => prev + 1);
+          communityName={selectedCommunity.name}
+          currentRole={currentRole || 'member'}
+          members={members}
+          onClose={() => setServerSettings(false)}
+          onDeleted={() => {
+            setServerSettings(false);
+            setCommunities(prev => prev.filter(c => c.id !== selectedCommunityId));
+            setSelectedCommunityId(null);
+            setChannels([]); setSelectedChannel(null);
           }}
+          onNameChanged={newName => setCommunities(prev => prev.map(c => c.id === selectedCommunityId ? { ...c, name: newName } : c))}
+          onMemberKicked={uid => setMembers(prev => prev.filter(m => m.id !== uid))}
+          onRoleChanged={(uid, role) => setMembers(prev => prev.map(m => m.id === uid ? { ...m, role } : m))}
+        />
+      )}
+
+      {/* Channel right-click / ⋯ context menu */}
+      {channelCtx && (
+        <ContextMenu
+          x={channelCtx.x}
+          y={channelCtx.y}
+          onClose={() => setChannelCtx(null)}
+          items={[
+            {
+              label: 'Edit Channel Name',
+              onClick: () => { setRenamingChannelId(channelCtx.channel.id); setRenameValue(channelCtx.channel.name || ''); }
+            },
+            {
+              label: 'Delete Channel',
+              danger: true,
+              onClick: () => handleDeleteChannel(channelCtx.channel)
+            }
+          ]}
         />
       )}
     </div>
