@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Hash, Users, Trash2, MoreHorizontal } from "lucide-react";
+import { Send, Hash, Users, Trash2, MoreHorizontal, Smile, Edit2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import { LevelBadge } from "@/components/ui/LevelBadge";
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface ChatAreaProps {
   channelId: string;
@@ -13,8 +15,6 @@ interface ChatAreaProps {
   communityRole?: string;
   onChannelDeleted?: () => void;
 }
-
-// ContextMenu imported from ui/ContextMenu
 
 const userLevelCache: Record<string, any> = {};
 
@@ -27,14 +27,30 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; msgId: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Record<string, { username: string }>>({});
+  
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [currentUserProfileName, setCurrentUserProfileName] = useState("User");
+
   const isAdmin = communityRole === 'owner' || communityRole === 'admin';
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from('profiles').select('username').eq('id', user.id).single().then(({data}) => {
+        if (data?.username) setCurrentUserProfileName(data.username);
+      });
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchMessages = async () => {
       const { data } = await supabase
         .from('messages')
-        .select('id, channel_id, user_id, text, created_at, profiles(id, username, avatar_url)')
+        .select('id, channel_id, user_id, text, created_at, is_edited, reactions, attachments, profiles(id, username, avatar_url)')
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -42,7 +58,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
       if (data && isMounted) {
         let msgs = data.reverse() as unknown as SupabaseMessage[];
         
-        // Fetch gamification from D1 for all unique users
         const userIds = [...new Set(msgs.map(m => m.user_id))];
         if (userIds.length > 0 && user) {
           try {
@@ -96,13 +111,54 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
         }
         if (isMounted) setMessages(prev => [...prev, { ...payload.new, profiles: finalProfile } as SupabaseMessage]);
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` }, payload => {
+        if (isMounted) {
+          setMessages(prev => prev.map(m => {
+            if (m.id === payload.new.id) {
+              return { ...m, ...payload.new, profiles: m.profiles };
+            }
+            return m;
+          }));
+        }
+      })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` }, payload => {
         if (isMounted) setMessages(prev => prev.filter(m => m.id !== payload.old.id));
       })
       .subscribe();
 
     return () => { isMounted = false; supabase.removeChannel(sub); };
-  }, [channelId]);
+  }, [channelId, user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const channel = supabase.channel(`room-${channelId}`, {
+      config: { presence: { key: user.id } }
+    });
+    
+    presenceChannelRef.current = channel;
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const newTyping: Record<string, { username: string }> = {};
+      Object.keys(state).forEach(key => {
+        if (key !== user.id) {
+          const presences = state[key] as any[];
+          const isTyping = presences.some(p => p.typing);
+          if (isTyping) {
+            newTyping[key] = { username: presences[0].username || 'User' };
+          }
+        }
+      });
+      setTypingUsers(newTyping);
+    });
+
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [channelId, user?.id]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -120,6 +176,45 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
     }
   }, [messages]);
 
+  const handleEditSubmit = async (msgId: string) => {
+    if (!editValue.trim()) {
+      setEditingMessageId(null);
+      return;
+    }
+    const { error } = await supabase.from('messages').update({ text: editValue.trim(), is_edited: true }).eq('id', msgId);
+    if (error) {
+      console.error("Failed to edit:", error);
+      alert("Failed to edit message.");
+    }
+    setEditingMessageId(null);
+  };
+
+  const handleReact = async (emoji: string, msgId: string, currentReactions: any) => {
+    let reactions = currentReactions ? (typeof currentReactions === 'string' ? JSON.parse(currentReactions) : currentReactions) : [];
+    if (!Array.isArray(reactions)) reactions = [];
+    
+    const existingIndex = reactions.findIndex((r: any) => r.emoji === emoji);
+    if (existingIndex > -1) {
+      if (!reactions[existingIndex].userIds.includes(user?.id)) {
+        reactions[existingIndex].userIds.push(user?.id);
+      } else {
+        reactions[existingIndex].userIds = reactions[existingIndex].userIds.filter((id: string) => id !== user?.id);
+        if (reactions[existingIndex].userIds.length === 0) {
+          reactions.splice(existingIndex, 1);
+        }
+      }
+    } else {
+      reactions.push({ emoji, userIds: [user?.id] });
+    }
+    
+    const stringified = JSON.stringify(reactions);
+    const { error } = await supabase.from('messages').update({ reactions: stringified }).eq('id', msgId);
+    if (error) {
+      console.error("Failed to add reaction:", error);
+    }
+    setShowEmojiPicker(null);
+  };
+
   const handleMsgContextMenu = (e: React.MouseEvent, msg: SupabaseMessage) => {
     const canDelete = msg.user_id === user?.id || isAdmin;
     if (!canDelete) return;
@@ -127,11 +222,16 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
     setCtxMenu({ x: e.clientX, y: e.clientY, msgId: msg.id });
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!text.trim() || !user) return;
     const t = text;
     setText("");
+    
+    if (presenceChannelRef.current) {
+      presenceChannelRef.current.track({ user_id: user.id, username: currentUserProfileName, typing: false });
+    }
+
     const { error } = await supabase.from('messages').insert({ channel_id: channelId, user_id: user.id, text: t.trim() });
     if (error) {
       console.error("Failed to send:", error);
@@ -146,6 +246,33 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
       }).catch(console.error);
     }
   };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    if (presenceChannelRef.current && user?.id) {
+      presenceChannelRef.current.track({
+        user_id: user.id,
+        username: currentUserProfileName,
+        typing: e.target.value.length > 0
+      });
+    }
+  };
+
+  const renderText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\s+)/g);
+    return parts.map((part, i) => {
+      if (/^@[a-zA-Z0-9_]+$/.test(part)) {
+        return <span key={i} className="text-cyan-400 font-semibold drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">{part}</span>;
+      }
+      if (/^https?:\/\/\S+$/.test(part)) {
+        return <a key={i} href={part} target="_blank" rel="noreferrer" className="text-blue-400 underline">{part}</a>;
+      }
+      return part;
+    });
+  };
+
+  const typingArray = Object.values(typingUsers);
 
   return (
     <div className="flex flex-col h-full bg-white/[0.02] backdrop-blur-lg relative shadow-2xl">
@@ -175,6 +302,11 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
               (new Date(msg.created_at).getTime() - new Date(messages[idx - 1].created_at).getTime()) < 5 * 60 * 1000;
             const isMe = msg.user_id === user?.id;
             const canDelete = isMe || isAdmin;
+            
+            let reactionsArray: any[] = [];
+            if (msg.reactions) {
+              reactionsArray = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
+            }
 
             return (
               <div
@@ -206,27 +338,83 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                       </span>
                     </div>
                   )}
-                  <p className="text-white/80 text-[15px] leading-8 break-words tracking-wide">{msg.text}</p>
+                  
+                  {editingMessageId === msg.id ? (
+                    <div className="mt-1">
+                      <input 
+                        type="text" 
+                        value={editValue} 
+                        onChange={(e) => setEditValue(e.target.value)} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEditSubmit(msg.id);
+                          if (e.key === 'Escape') setEditingMessageId(null);
+                        }}
+                        autoFocus
+                        className="w-full bg-black/40 border border-blue-500/50 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                      />
+                      <div className="text-[10px] text-white/40 mt-1">escape to cancel, enter to save</div>
+                    </div>
+                  ) : (
+                    <p className="text-white/80 text-[15px] leading-8 break-words tracking-wide">
+                      {renderText(msg.text)}
+                      {msg.is_edited && <span className="text-[10px] text-white/30 ml-2">(edited)</span>}
+                    </p>
+                  )}
+                  
+                  {reactionsArray.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {reactionsArray.map((r, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => handleReact(r.emoji, msg.id, reactionsArray)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${r.userIds.includes(user?.id) ? 'bg-blue-500/20 border-blue-500/50 text-blue-200' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}`}
+                        >
+                          <span>{r.emoji}</span>
+                          <span className="font-medium">{r.userIds.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Discord-style action toolbar — fades in on hover */}
-                {hoveredMsgId === msg.id && canDelete && (
-                  <div className="absolute right-4 -top-4 flex items-center gap-0.5 bg-[#2b2d31] border border-white/10 rounded-md shadow-lg py-0.5 px-1">
+                {/* Hover actions */}
+                {hoveredMsgId === msg.id && (
+                  <div className="absolute right-4 -top-4 flex items-center gap-0.5 bg-[#2b2d31]/90 backdrop-blur-md border border-white/10 rounded-md shadow-lg py-0.5 px-1 z-10">
                     <button
-                      onClick={() => deleteMessage(msg.id)}
-                      className="p-1.5 rounded text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      title="Delete Message"
+                      onClick={() => setShowEmojiPicker(msg.id)}
+                      className="p-1.5 rounded text-white/50 hover:text-yellow-400 hover:bg-white/10 transition-colors"
+                      title="React"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Smile className="w-4 h-4" />
                     </button>
-                    <button
-                      onContextMenu={e => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, msgId: msg.id }); }}
-                      onClick={e => setCtxMenu({ x: e.clientX, y: e.clientY, msgId: msg.id })}
-                      className="p-1.5 rounded text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                      title="More"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
+                    {isMe && (
+                      <button
+                        onClick={() => { setEditingMessageId(msg.id); setEditValue(msg.text); }}
+                        className="p-1.5 rounded text-white/50 hover:text-blue-400 hover:bg-white/10 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => deleteMessage(msg.id)}
+                        className="p-1.5 rounded text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Delete Message"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Emoji Picker */}
+                {showEmojiPicker === msg.id && (
+                  <div className="absolute right-8 top-0 z-50">
+                    <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(null)} />
+                    <div className="relative z-50 shadow-2xl border border-white/10 rounded-xl overflow-hidden">
+                      <Picker data={data} onEmojiSelect={(e: any) => handleReact(e.native, msg.id, msg.reactions)} theme="dark" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -249,19 +437,34 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2 shrink-0">
-        <form onSubmit={handleSend} className="relative flex items-center">
-          {/* ponytail: delete channel trigger moved to server settings — no button here */}
-          <input
-            type="text"
+        {typingArray.length > 0 && (
+          <div className="px-2 pb-1 text-xs text-white/50 font-medium animate-pulse">
+            {typingArray.length === 1 
+              ? `${typingArray[0].username} is typing...` 
+              : typingArray.length === 2 
+                ? `${typingArray[0].username} and ${typingArray[1].username} are typing...` 
+                : 'Several people are typing...'}
+          </div>
+        )}
+        <form onSubmit={handleSend} className="relative flex items-center bg-white/[0.03] border border-white/[0.1] rounded-2xl shadow-inner focus-within:ring-1 focus-within:ring-white/20 transition-all duration-300">
+          <textarea
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={handleTextChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={`Message ${type === 'dm' ? channelName : `#${channelName}`}`}
-            className="w-full bg-white/[0.03] border border-white/[0.1] text-white placeholder-white/40 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300 shadow-inner"
+            rows={1}
+            className="w-full bg-transparent text-white placeholder-white/40 pl-6 pr-14 py-4 focus:outline-none resize-none max-h-32"
+            style={{ minHeight: '56px' }}
           />
           <button
             type="submit"
             disabled={!text.trim()}
-            className="absolute right-2 p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 disabled:opacity-30 transition-colors"
+            className="absolute right-2 bottom-2 p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 disabled:opacity-30 transition-colors"
           >
             <Send className="w-5 h-5" />
           </button>

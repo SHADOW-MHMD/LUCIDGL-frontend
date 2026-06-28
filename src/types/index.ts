@@ -77,6 +77,9 @@ export interface SupabaseMessage {
   user_id: string;
   text: string;
   created_at: string;
+  is_edited?: boolean;
+  reactions?: any;
+  attachments?: any;
   profiles?: Profile;
 }
 

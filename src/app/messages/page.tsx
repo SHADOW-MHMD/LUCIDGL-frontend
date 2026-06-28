@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Compass } from "lucide-react";
+import { ShieldAlert, Compass, MessageSquare, PlusSquare } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Community, Channel, Profile } from "@/types";
 import { ChatArea } from "@/components/chat/ChatArea";
@@ -164,12 +164,6 @@ export default function MessagesPage() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-transparent font-sans">
       
-      <ServerRail 
-        communities={communities}
-        selectedCommunityId={selectedCommunityId}
-        onSelectCommunity={setSelectedCommunityId}
-        onCreateCommunity={() => setIsCreatingCommunity(true)}
-      />
 
       <ChannelSidebar 
         channels={channels}
@@ -283,6 +277,47 @@ export default function MessagesPage() {
           ]}
         />
       )}
+
+      {/* FLOATING BOTTOM DOCK */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl z-50">
+        {/* DMs / Home */}
+        <button 
+          onClick={() => setSelectedCommunityId(null)} 
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out ${selectedCommunityId === null ? 'bg-white/20 shadow-lg scale-110' : 'hover:bg-white/10 hover:scale-105'}`}
+          title="Direct Messages"
+        >
+          <MessageSquare size={24} className="text-white" />
+        </button>
+        
+        <div className="w-px h-8 bg-white/10 mx-1" />
+
+        {/* Communities */}
+        {communities.map(c => (
+          <button 
+            key={c.id} 
+            onClick={() => setSelectedCommunityId(c.id)} 
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out overflow-hidden ${selectedCommunityId === c.id ? 'bg-white/20 shadow-lg ring-2 ring-cyan-500/50 scale-110' : 'bg-white/5 hover:bg-white/10 hover:scale-105'}`}
+            title={c.name}
+          >
+            {c.logo_url ? (
+              <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="text-white font-bold text-lg">{c.name.charAt(0).toUpperCase()}</div>
+            )}
+          </button>
+        ))}
+        
+        <div className="w-px h-8 bg-white/10 mx-1" />
+        
+        {/* Add Community */}
+        <button 
+          onClick={() => setIsCreatingCommunity(true)} 
+          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-white/10 hover:scale-105 text-cyan-400"
+          title="Create Community"
+        >
+          <PlusSquare size={24} />
+        </button>
+      </div>
     </div>
   );
 }
