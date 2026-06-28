@@ -13,6 +13,7 @@ type Community = { id: string, name: string, owner_id: string, is_private: numbe
 type Channel = { id: string, name: string, community_id: string };
 type DM = { id: string, target_user: { id: string, username: string, badge_tier?: string } };
 type Member = { id: string, username: string, role: string };
+type UserResult = { id: string, username: string };
 
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
@@ -39,7 +40,8 @@ export default function ChatPage() {
   // Modals state
   const [newCommName, setNewCommName] = useState("");
   const [newChannelName, setNewChannelName] = useState("");
-  const [newDmUserId, setNewDmUserId] = useState("");
+  const [newDmSearch, setNewDmSearch] = useState("");
+  const [dmSearchResults, setDmSearchResults] = useState<UserResult[]>([]);
   const [joinCommId, setJoinCommId] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -171,13 +173,27 @@ export default function ChatPage() {
     loadChannelsAndMembers();
   };
 
-  const handleCreateDM = async () => {
-    if (!newDmUserId) return;
-    const res = await authFetch(`${API_URL}/api/chat/dms`, { method: "POST", body: JSON.stringify({ targetUserId: newDmUserId }) });
+  const handleSearchUsers = async (q: string) => {
+    setNewDmSearch(q);
+    if (q.length < 2) { setDmSearchResults([]); return; }
+    const res = await authFetch(`${API_URL}/api/users/search?q=${encodeURIComponent(q)}`);
+    setDmSearchResults(await res.json());
+  };
+
+  const handleCreateDM = async (targetId: string) => {
+    const res = await authFetch(`${API_URL}/api/chat/dms`, { method: "POST", body: JSON.stringify({ targetUserId: targetId }) });
     const data = await res.json();
-    setNewDmUserId("");
+    setNewDmSearch(""); setDmSearchResults([]);
     loadSidebars();
     setActiveChannelId(data.id);
+  };
+
+  const handleDeleteCommunity = async () => {
+    if (!activeCommId) return;
+    if (!confirm('Delete this entire server? This cannot be undone.')) return;
+    await authFetch(`${API_URL}/api/chat/communities/${activeCommId}`, { method: 'DELETE' });
+    setCommunities(prev => prev.filter(c => c.id !== activeCommId));
+    setActiveCommId(null); setActiveChannelId(null); setChannels([]);
   };
 
   const handleDeleteDM = async (id: string, e: React.MouseEvent) => {
@@ -281,11 +297,16 @@ export default function ChatPage() {
 
       {/* Secondary Sidebar (Channels / DMs) */}
       <div className="w-64 bg-[#111116] border-r border-white/5 flex flex-col shrink-0">
-        <div className="h-14 px-4 border-b border-white/5 flex items-center justify-between">
-          <h3 className="font-bold text-white tracking-wide truncate">
-            {activeTab === 'communities' ? communities.find(c=>c.id===activeCommId)?.name || 'Community' : 'Direct Messages'}
-          </h3>
-        </div>
+          <div className="h-14 px-4 border-b border-white/5 flex items-center justify-between">
+            <h3 className="font-bold text-white tracking-wide truncate">
+              {activeTab === 'communities' ? communities.find(c=>c.id===activeCommId)?.name || 'Community' : 'Direct Messages'}
+            </h3>
+            {activeTab === 'communities' && isAdmin && (
+              <button onClick={handleDeleteCommunity} className="p-1 text-red-400 hover:bg-red-500/20 rounded-md transition-all" title="Delete server">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-[2px] no-scrollbar">
           {activeTab === 'communities' ? (
@@ -329,10 +350,19 @@ export default function ChatPage() {
                 </div>
               ))}
               <div className="mt-4 px-2">
-                <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2">New DM (User ID)</h4>
-                <div className="flex gap-1">
-                  <input value={newDmUserId} onChange={e=>setNewDmUserId(e.target.value)} placeholder="UUID" className="flex-1 bg-black/40 text-white text-xs rounded-lg px-2 py-1.5 outline-none" />
-                  <button onClick={handleCreateDM} className="bg-white/10 hover:bg-white/20 text-white p-1.5 rounded-lg"><Plus className="w-3.5 h-3.5"/></button>
+                <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2">Find user to DM</h4>
+                <div className="relative">
+                  <input value={newDmSearch} onChange={e=>handleSearchUsers(e.target.value)} placeholder="Search username..." className="w-full bg-black/40 text-white text-xs rounded-lg px-2 py-1.5 outline-none" />
+                  {dmSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-[#1e1e24] border border-white/10 rounded-lg overflow-hidden z-50">
+                      {dmSearchResults.map(u => (
+                        <button key={u.id} onClick={() => handleCreateDM(u.id)} className="w-full px-3 py-2 text-sm text-zinc-200 hover:bg-white/10 text-left flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-300">{u.username.substring(0,2).toUpperCase()}</div>
+                          {u.username}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
