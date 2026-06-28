@@ -40,6 +40,7 @@ export interface ChatMessage {
   user_id: string;
   username?: string;
   text: string;
+  media_url?: string | null;
   timestamp: string;
 }
 
