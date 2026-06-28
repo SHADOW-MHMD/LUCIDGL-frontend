@@ -44,29 +44,6 @@ export default function FacesUploadPage() {
     setFile(selected);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setErrorMsg("");
-    const selected = e.dataTransfer.files?.[0];
-    if (!selected) return;
-
-    if (selected.size > 20 * 1024 * 1024) {
-      setErrorMsg("File must be smaller than 20MB.");
-      return;
-    }
-
-    if (selected.type !== "video/mp4" && selected.type !== "video/webm") {
-      setErrorMsg("Only MP4 and WebM videos are supported.");
-      return;
-    }
-
-    setFile(selected);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !user) return;
@@ -138,8 +115,6 @@ export default function FacesUploadPage() {
 
           <div
             onClick={() => fileInputRef.current?.click()}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
             className={`relative flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${
               file ? "border-cyan-500/50 bg-cyan-500/5" : "border-white/20 bg-white/5 hover:border-cyan-400/50 hover:bg-white/10"
             }`}

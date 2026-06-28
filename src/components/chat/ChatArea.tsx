@@ -16,6 +16,8 @@ interface ChatAreaProps {
 
 // ContextMenu imported from ui/ContextMenu
 
+const userLevelCache: Record<string, any> = {};
+
 export function ChatArea({ channelId, channelName, type, communityRole, onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
@@ -53,6 +55,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
               body: JSON.stringify({ userIds })
             });
             const levelsMap = await res.json();
+            Object.assign(userLevelCache, levelsMap);
             msgs = msgs.map(m => {
               if (levelsMap[m.user_id] && m.profiles) {
                 m.profiles = { ...m.profiles, ...levelsMap[m.user_id] };
@@ -75,13 +78,20 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
         let finalProfile = profile;
         if (user && finalProfile) {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(user as any).access_token || ''}` },
-              body: JSON.stringify({ userIds: [payload.new.user_id] })
-            });
-            const levelsMap = await res.json();
-            if (levelsMap[payload.new.user_id]) finalProfile = { ...finalProfile, ...levelsMap[payload.new.user_id] };
+            if (userLevelCache[payload.new.user_id]) {
+              finalProfile = { ...finalProfile, ...userLevelCache[payload.new.user_id] };
+            } else {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(user as any).access_token || ''}` },
+                body: JSON.stringify({ userIds: [payload.new.user_id] })
+              });
+              const levelsMap = await res.json();
+              if (levelsMap[payload.new.user_id]) {
+                userLevelCache[payload.new.user_id] = levelsMap[payload.new.user_id];
+                finalProfile = { ...finalProfile, ...levelsMap[payload.new.user_id] };
+              }
+            }
           } catch(e) {}
         }
         if (isMounted) setMessages(prev => [...prev, { ...payload.new, profiles: finalProfile } as SupabaseMessage]);

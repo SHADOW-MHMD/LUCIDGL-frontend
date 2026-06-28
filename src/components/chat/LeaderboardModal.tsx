@@ -26,18 +26,10 @@ export function LeaderboardModal({ communityId, onClose }: LeaderboardModalProps
           username: d.username,
           total_xp: d.xp_points,
           current_streak: d.streak_count,
-          current_level: 0,
+          current_level: d.current_level || 0,
           badge_tier: d.badge_tier,
           avatar_url: '' // Will need to resolve avatars if needed
         }));
-
-        profs = profs.map((p: any) => {
-          let lvl = 0;
-          let xp = p.total_xp || 0;
-          while (xp >= (5 * Math.pow(lvl + 1, 2) + 50 * (lvl + 1) + 100)) lvl++;
-          p.current_level = lvl;
-          return p;
-        });
 
         if (tab === 'community' && communityId) {
           // Filter to only community members
