@@ -126,9 +126,14 @@ export default function MessagesPage() {
 
   const handleDeleteChannel = useCallback(async (ch: Channel) => {
     if (!window.confirm(`Delete #${ch.name}?`)) return;
-    await supabase.from('channels').delete().eq('id', ch.id);
-    setChannels(prev => prev.filter(c => c.id !== ch.id));
-    if (selectedChannel?.id === ch.id) setSelectedChannel(null);
+    const { error } = await supabase.from('channels').delete().eq('id', ch.id);
+    if (error) {
+      console.error("Failed to delete channel:", error);
+      alert(`Failed to delete channel: ${error.message}`);
+    } else {
+      setChannels(prev => prev.filter(c => c.id !== ch.id));
+      if (selectedChannel?.id === ch.id) setSelectedChannel(null);
+    }
   }, [selectedChannel]);
 
   const handleRenameChannel = async (ch: Channel) => {

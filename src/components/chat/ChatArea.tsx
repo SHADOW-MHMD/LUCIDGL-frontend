@@ -94,14 +94,27 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   }, [messages]);
 
   const deleteMessage = useCallback(async (msgId: string) => {
+    // Store previous messages to revert on failure
+    const prevMessages = [...messages];
     setMessages(prev => prev.filter(m => m.id !== msgId));
-    await supabase.from('messages').delete().eq('id', msgId);
-  }, []);
+    
+    const { error } = await supabase.from('messages').delete().eq('id', msgId);
+    if (error) {
+      console.error("Failed to delete message:", error);
+      alert(`Failed to delete message: ${error.message}`);
+      setMessages(prevMessages); // revert
+    }
+  }, [messages]);
 
   const handleDeleteChannel = async () => {
     if (!window.confirm(`Delete #${channelName}? All messages will be gone.`)) return;
-    await supabase.from('channels').delete().eq('id', channelId);
-    onChannelDeleted?.();
+    const { error } = await supabase.from('channels').delete().eq('id', channelId);
+    if (error) {
+      console.error("Failed to delete channel:", error);
+      alert(`Failed to delete channel: ${error.message}`);
+    } else {
+      onChannelDeleted?.();
+    }
   };
 
   const handleMsgContextMenu = (e: React.MouseEvent, msg: SupabaseMessage) => {

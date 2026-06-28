@@ -52,20 +52,36 @@ export function ServerSettingsModal({
   };
 
   const handleKick = async (userId: string) => {
-    await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId);
-    onMemberKicked(userId);
+    const { error } = await supabase.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId);
+    if (error) {
+      console.error("Failed to kick:", error);
+      alert(`Failed to kick: ${error.message}`);
+    } else {
+      onMemberKicked(userId);
+    }
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    await supabase.from('community_members').update({ role: newRole }).eq('community_id', communityId).eq('user_id', userId);
-    onRoleChanged(userId, newRole);
+    const { error } = await supabase.from('community_members').update({ role: newRole }).eq('community_id', communityId).eq('user_id', userId);
+    if (error) {
+      console.error("Failed to change role:", error);
+      alert(`Failed to change role: ${error.message}`);
+    } else {
+      onRoleChanged(userId, newRole);
+    }
   };
 
   const handleDelete = async () => {
     if (deleteConfirm !== communityName) return;
     setDeleting(true);
-    await supabase.from('communities').delete().eq('id', communityId);
-    onDeleted();
+    const { error } = await supabase.from('communities').delete().eq('id', communityId);
+    if (error) {
+      console.error("Failed to delete server:", error);
+      alert(`Failed to delete server: ${error.message}`);
+      setDeleting(false);
+    } else {
+      onDeleted();
+    }
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
