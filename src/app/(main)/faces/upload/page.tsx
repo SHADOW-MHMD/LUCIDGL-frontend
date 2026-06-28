@@ -93,7 +93,7 @@ export default function FacesUploadPage() {
 
       if (!backendRes.ok) {
         const data = await backendRes.json().catch(() => ({}));
-        const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
+        const detailedError = data.detail ? `${data.error}: ${data.detail}` : data.error;
         throw new Error(`Backend Error: ${detailedError || "Failed to log on server"}`);
       }
 
