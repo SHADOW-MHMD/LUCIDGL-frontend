@@ -29,10 +29,11 @@ export function CreateCommunityModal({ onClose, onCreated }: CreateCommunityModa
         
       if (commError) throw commError;
 
-      // Add creator as member
+      // Add creator as owner
       await supabase.from("community_members").insert({
         community_id: comm.id,
-        user_id: session.user.id
+        user_id: session.user.id,
+        role: 'owner'
       });
 
       // Create a default "general" channel

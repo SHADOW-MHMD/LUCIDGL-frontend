@@ -34,6 +34,7 @@ export interface Comment {
   badge_tier?: string;
 }
 
+// ponytail: ChatMessage used by (main)/chat D1 system — separate from SupabaseMessage below
 export interface ChatMessage {
   id: string;
   channel_id: string;
@@ -55,6 +56,7 @@ export interface Community {
   name: string;
   owner_id: string;
   logo_url?: string;
+  role?: string; // current user's role in this community
 }
 
 export interface Channel {
@@ -62,6 +64,8 @@ export interface Channel {
   community_id?: string;
   name?: string;
   type: 'community' | 'dm';
+  // ponytail: typed to match the deep select shape used in messages/page.tsx
+  channel_members?: Array<{ profiles?: Profile }>;
 }
 
 export interface SupabaseMessage {

@@ -9,42 +9,59 @@ interface AddMemberModalProps {
   onAdded: () => void;
 }
 
+interface Profile { id: string; username: string; avatar_url?: string; }
+
 export function AddMemberModal({ communityId, onClose, onAdded }: AddMemberModalProps) {
   const { user } = useAuth();
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
+
+  // ponytail: load existing member IDs once so we can filter them out
+  useEffect(() => {
+    if (!communityId) return;
+    supabase
+      .from('community_members')
+      .select('user_id')
+      .eq('community_id', communityId)
+      .then(({ data }) => {
+        if (data) setExistingIds(new Set(data.map(m => m.user_id)));
+      });
+  }, [communityId]);
 
   useEffect(() => {
+    if (!user) return;
     const fetchUsers = async () => {
-      const { data } = await supabase
+      setLoading(true);
+      const req = supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .neq('id', user?.id)
+        .neq('id', user.id)
+        .order('username')
         .limit(20);
-        
-      if (data) {
-        setUsers(data);
-      }
+      if (query.trim().length >= 1) req.ilike('username', `%${query.trim()}%`);
+      const { data } = await req;
+      if (data) setUsers(data as Profile[]);
       setLoading(false);
     };
     fetchUsers();
-  }, [user]);
+  }, [user, query]);
 
   const handleAddMember = async (targetUserId: string) => {
-    try {
-      const { error } = await supabase
-        .from('community_members')
-        .insert([{ community_id: communityId, user_id: targetUserId }]);
-        
-      if (error) {
-        // If they are already a member, we might get a unique constraint error. Just ignore and close.
-        console.error("Failed to add member", error);
-      }
+    const { error } = await supabase
+      .from('community_members')
+      .insert([{ community_id: communityId, user_id: targetUserId, role: 'member' }]);
+
+    if (error) {
+      console.error("Failed to add member", error);
+    } else {
+      setExistingIds(prev => new Set([...prev, targetUserId]));
       onAdded();
-    } catch (err) {
-      console.error("Failed to add member", err);
     }
   };
+
+  const filteredUsers = users.filter(u => !existingIds.has(u.id));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -60,9 +77,12 @@ export function AddMemberModal({ communityId, onClose, onAdded }: AddMemberModal
         </div>
 
         <div className="relative mb-4">
-          <input 
-            type="text" 
-            placeholder="Search users..." 
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by username..."
+            autoFocus
             className="w-full bg-white/5 border border-white/10 text-white placeholder-white/40 rounded-xl px-4 py-3 pl-11 focus:outline-none focus:border-emerald-500 transition-all"
           />
           <Search className="w-5 h-5 text-white/30 absolute left-4 top-3.5" />
@@ -70,12 +90,12 @@ export function AddMemberModal({ communityId, onClose, onAdded }: AddMemberModal
 
         <div className="flex flex-col gap-2 max-h-60 overflow-y-auto no-scrollbar">
           {loading ? (
-            <p className="text-white/40 text-center py-8">Loading users...</p>
-          ) : users.length === 0 ? (
+            <p className="text-white/40 text-center py-8">Searching...</p>
+          ) : filteredUsers.length === 0 ? (
             <p className="text-white/40 text-center py-8">No users found.</p>
           ) : (
-            users.map(u => (
-              <button 
+            filteredUsers.map(u => (
+              <button
                 key={u.id}
                 onClick={() => handleAddMember(u.id)}
                 className="flex items-center gap-3 p-3 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-xl transition-all duration-200 text-left group"

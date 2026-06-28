@@ -8,36 +8,70 @@ interface CreateDMModalProps {
   onCreated: (channelId: string) => void;
 }
 
+interface Profile { id: string; username: string; avatar_url?: string; }
+
 export function CreateDMModal({ onClose, onCreated }: CreateDMModalProps) {
   const { user } = useAuth();
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // ponytail: search on type, debounce not needed at this scale
   useEffect(() => {
+    if (!user) return;
     const fetchUsers = async () => {
-      const { data } = await supabase
+      setLoading(true);
+      const req = supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .neq('id', user?.id)
+        .neq('id', user.id)
+        .order('username')
         .limit(20);
-      if (data) setUsers(data);
+      if (query.trim().length >= 1) req.ilike('username', `%${query.trim()}%`);
+      const { data } = await req;
+      if (data) setUsers(data as Profile[]);
       setLoading(false);
     };
     fetchUsers();
-  }, [user]);
+  }, [user, query]);
 
-  const handleCreateDM = async (targetUserId: string, targetUsername: string) => {
+  const handleCreateDM = async (targetUserId: string) => {
     if (!user) return;
     try {
+      // ponytail: dedup — check for existing DM between these two users
+      const { data: existing } = await supabase
+        .from('channel_members')
+        .select('channel_id, channels!inner(id, type)')
+        .eq('user_id', user.id);
+
+      if (existing) {
+        const myChannelIds = existing
+          .filter((m: any) => m.channels?.type === 'dm')
+          .map((m: any) => m.channel_id);
+
+        if (myChannelIds.length > 0) {
+          const { data: shared } = await supabase
+            .from('channel_members')
+            .select('channel_id')
+            .eq('user_id', targetUserId)
+            .in('channel_id', myChannelIds);
+
+          if (shared && shared.length > 0) {
+            // DM already exists — just open it
+            onCreated(shared[0].channel_id);
+            return;
+          }
+        }
+      }
+
       // Create a DM channel with a client-generated UUID to avoid RLS SELECT issues
       const channelId = crypto.randomUUID();
       const { error: chError } = await supabase
         .from('channels')
         .insert({ id: channelId, type: 'dm', name: null });
-        
+
       if (chError) throw chError;
 
-      // Add both users to channel_members
       await supabase.from('channel_members').insert([
         { channel_id: channelId, user_id: user.id },
         { channel_id: channelId, user_id: targetUserId }
@@ -63,9 +97,12 @@ export function CreateDMModal({ onClose, onCreated }: CreateDMModalProps) {
         </div>
 
         <div className="relative mb-4">
-          <input 
-            type="text" 
-            placeholder="Search friends..." 
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by username..."
+            autoFocus
             className="w-full bg-white/5 border border-white/10 text-white placeholder-white/40 rounded-xl px-4 py-3 pl-11 focus:outline-none focus:border-blue-500 transition-all"
           />
           <Search className="w-5 h-5 text-white/30 absolute left-4 top-3.5" />
@@ -73,14 +110,14 @@ export function CreateDMModal({ onClose, onCreated }: CreateDMModalProps) {
 
         <div className="flex flex-col gap-2 max-h-60 overflow-y-auto no-scrollbar">
           {loading ? (
-            <p className="text-white/40 text-center py-8">Loading users...</p>
+            <p className="text-white/40 text-center py-8">Searching...</p>
           ) : users.length === 0 ? (
             <p className="text-white/40 text-center py-8">No users found.</p>
           ) : (
             users.map(u => (
-              <button 
+              <button
                 key={u.id}
-                onClick={() => handleCreateDM(u.id, u.username)}
+                onClick={() => handleCreateDM(u.id)}
                 className="flex items-center gap-3 p-3 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-xl transition-all duration-200 text-left group"
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden shadow-md">
