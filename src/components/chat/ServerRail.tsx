@@ -16,7 +16,7 @@ export function ServerRail({
   onCreateCommunity
 }: ServerRailProps) {
   return (
-    <div className="w-[72px] shrink-0 bg-black/40 backdrop-blur-xl flex flex-col items-center py-3 gap-2 overflow-y-auto no-scrollbar border-r border-white/5">
+    <div className="w-[72px] shrink-0 bg-white/[0.03] backdrop-blur-lg flex flex-col items-center py-4 gap-3 overflow-y-auto no-scrollbar border-r border-white/[0.1] shadow-2xl z-20 transition-all duration-300 ease-in-out">
       <Link href="/" className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200">
         <ArrowLeft className="w-5 h-5" />
       </Link>

@@ -32,9 +32,9 @@ export function ChannelSidebar({
   onChannelCtx, hoveredChannelId, onHoverChannel, userProfile
 }: ChannelSidebarProps) {
   return (
-    <div className="w-60 shrink-0 bg-[#2b2d31]/80 backdrop-blur-md flex flex-col border-r border-white/5">
+    <div className="w-60 shrink-0 bg-white/[0.03] backdrop-blur-lg flex flex-col border-r border-white/[0.1] shadow-2xl z-10 transition-all duration-300 ease-in-out">
       {/* Server name header */}
-      <div className="h-12 px-4 border-b border-white/10 flex items-center justify-between shrink-0 shadow-sm">
+      <div className="h-16 px-6 border-b border-white/[0.1] flex items-center justify-between shrink-0">
         <h2 className="text-white font-bold text-sm tracking-wide truncate flex-1">
           {selectedCommunityId === null ? 'Direct Messages' : selectedCommunity?.name || 'Community'}
         </h2>
@@ -139,7 +139,7 @@ export function ChannelSidebar({
       </div>
 
       {/* User bar at bottom */}
-      <div className="h-14 bg-black/20 shrink-0 flex items-center px-3 gap-2 border-t border-white/5">
+      <div className="h-16 bg-white/[0.02] shrink-0 flex items-center px-4 gap-3 border-t border-white/[0.1] backdrop-blur-md">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shrink-0 overflow-hidden">
           {userProfile?.avatar_url && <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />}
         </div>

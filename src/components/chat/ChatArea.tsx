@@ -148,15 +148,15 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   };
 
   return (
-    <div className="flex flex-col h-full bg-black/20 backdrop-blur-md relative">
-      <div className="h-14 border-b border-white/10 flex items-center px-5 shrink-0 z-10 bg-white/5 justify-between">
+    <div className="flex flex-col h-full bg-white/[0.02] backdrop-blur-lg relative shadow-2xl">
+      <div className="h-16 border-b border-white/[0.1] flex items-center px-8 shrink-0 z-10 bg-white/[0.02] justify-between backdrop-blur-md">
         <div className="flex items-center gap-2">
           {type === 'community' ? <Hash className="w-5 h-5 text-white/50" /> : <Users className="w-5 h-5 text-white/50" />}
           <h3 className="text-white font-semibold">{channelName}</h3>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 flex flex-col gap-0.5 no-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 flex flex-col gap-2 no-scrollbar">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -206,7 +206,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                       </span>
                     </div>
                   )}
-                  <p className="text-white/90 text-sm leading-relaxed break-words">{msg.text}</p>
+                  <p className="text-white/80 text-[15px] leading-8 break-words tracking-wide">{msg.text}</p>
                 </div>
 
                 {/* Discord-style action toolbar — fades in on hover */}
@@ -256,7 +256,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder={`Message ${type === 'dm' ? channelName : `#${channelName}`}`}
-            className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-white/[0.03] border border-white/[0.1] text-white placeholder-white/40 rounded-2xl pl-6 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all duration-300 shadow-inner"
           />
           <button
             type="submit"

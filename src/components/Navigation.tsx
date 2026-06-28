@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare, Globe2 } from "lucide-react";
+import { Home, Play, MessageSquare, LogIn, LogOut, BarChart3, UserCircle, PlusSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function Navigation() {
@@ -13,14 +13,13 @@ export default function Navigation() {
     { href: "/", label: "Home", icon: Home },
     { href: "/reels", label: "Reels", icon: Play },
     { href: "/messages", label: "DMs", icon: MessageSquare },
-    { href: "/chat", label: "Global", icon: Globe2 },
     { href: "/leaderboard", label: "Rank", icon: BarChart3 },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
   ];
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 p-4">
-      <div className="max-w-5xl mx-auto flex items-center justify-between p-3 px-6 bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-3xl transition-all duration-300">
+      <div className="max-w-5xl mx-auto flex items-center justify-between p-4 px-8 bg-white/[0.03] backdrop-blur-lg border border-white/[0.1] shadow-2xl rounded-2xl transition-all duration-300 ease-in-out">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shadow-lg shadow-blue-500/30 flex items-center justify-center">
             <span className="font-bold text-white text-sm tracking-tighter">L</span>
