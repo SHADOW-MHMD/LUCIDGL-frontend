@@ -94,6 +94,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
   const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(reel.like_count);
   const [isLiked, setIsLiked] = useState(!!reel.is_liked);
+  const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -189,7 +190,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
       >
         <video
           ref={videoElementRef}
-          src={reel.videoUrl}
+          src={`${apiUrl}/api/feed/stream/${reel.telegram_file_id}`}
           playsInline={true}
           loop={true}
           muted={true}
@@ -222,7 +223,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
               </span>
             )}
           </div>
-          <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.videoUrl}`}</p>
+          <p className="text-white/90 text-sm drop-shadow-md pr-4">{reel.caption || `Path: ${reel.telegram_file_id}`}</p>
         </div>
 
         <div className="flex flex-col gap-6 items-center z-40">

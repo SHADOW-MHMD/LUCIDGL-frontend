@@ -11,7 +11,7 @@ export interface User {
 export interface FacePost {
   id: string;
   user_id: string;
-  videoUrl: string;
+  telegram_file_id: string;
   caption: string;
   like_count: number;
   comment_count?: number;

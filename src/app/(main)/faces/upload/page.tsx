@@ -79,42 +79,19 @@ export default function FacesUploadPage() {
       const token = session?.access_token;
       const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
       
-      // 1. Direct Supabase Storage Binary Upload
-      const fileExt = file.name.split('.').pop();
-      const filePath = `faces/${crypto.randomUUID()}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("video", file);
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw new Error(`Supabase Upload Error: ${uploadError.message}`);
-
-      // 2. Resolve fast public CDN path
-      const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(uploadData.path);
-
-      const videoUrl = urlData.publicUrl;
-
-      // 5. Fire JSON payload to Cloudflare Worker
       const backendRes = await fetch(`${apiUrl}/api/faces/upload`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "X-Post-Caption": encodeURIComponent(caption),
         },
-        body: JSON.stringify({
-          videoUrl,
-          userId: user.id,
-          caption
-        }),
+        body: formData,
       });
 
       if (!backendRes.ok) {
-        await supabase.storage.from('videos').remove([uploadData.path]);
         const data = await backendRes.json().catch(() => ({}));
         const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
         throw new Error(`Backend Error: ${detailedError || "Failed to log on server"}`);
