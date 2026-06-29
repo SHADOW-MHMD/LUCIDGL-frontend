@@ -11,17 +11,20 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
+    if (value === 0) return;
     const steps = 40;
     const increment = value / steps;
     let current = 0;
     let step = 0;
-    const timer = setInterval(() => {
+    let rafId: number;
+    const tick = () => {
       step++;
       current = Math.min(current + increment, value);
       setDisplay(Math.round(current));
-      if (step >= steps) clearInterval(timer);
-    }, 20);
-    return () => clearInterval(timer);
+      if (step < steps) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [value]);
   return <>{display.toLocaleString()}</>;
 }

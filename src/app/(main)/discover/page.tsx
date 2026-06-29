@@ -107,7 +107,7 @@ export default function DiscoverPage() {
                       Lvl {user.level || 1}
                     </span>
                     {user.nitro_tier && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-semibold flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-xs font-semibold flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Tier {user.nitro_tier}
                       </span>
                     )}

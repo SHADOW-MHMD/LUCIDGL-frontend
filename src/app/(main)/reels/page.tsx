@@ -226,7 +226,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
       <div className={`absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex justify-between items-end z-30 transition-opacity duration-300 opacity-100`}>
         <div className="flex flex-col gap-2 flex-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 border-2 border-white/20"></div>
             <span className="font-bold text-white shadow-sm">@{reel.username || "anonymous"}</span>
             {reel.badge_tier && (
               <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 backdrop-blur-sm border border-indigo-500/20 text-[10px] font-bold text-indigo-200 tracking-wider">
