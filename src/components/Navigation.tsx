@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Home, Play, MessageSquare, LogIn, LogOut, Compass, UserCircle, PlusSquare, Code2, BarChart2, Settings } from "lucide-react";
@@ -8,6 +9,11 @@ import { usePathname } from "next/navigation";
 export default function Navigation() {
   const { user, signIn, signOut } = useAuth();
   const pathname = usePathname();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  if (!user || pathname.startsWith('/messages')) {
+    return null;
+  }
 
   const links = [
     { href: "/", label: "Home", icon: Home },
@@ -17,71 +23,65 @@ export default function Navigation() {
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
     { href: "/code", label: "Code Hub", icon: Code2 },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },
-    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 p-4">
-      <div className="max-w-5xl mx-auto flex items-center justify-between p-4 px-8 bg-white/[0.03] backdrop-blur-lg border border-white/[0.1] shadow-2xl rounded-2xl transition-all duration-300 ease-in-out">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shadow-lg shadow-blue-500/30 flex items-center justify-center">
-            <span className="font-bold text-white text-sm tracking-tighter">L</span>
-          </div>
-          <span className="font-bold text-white/90 hidden sm:block tracking-wide">LUCID-GL</span>
-        </div>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl z-50">
+      {links.map(({ href, label, icon: Icon }) => {
+        const isActive = pathname === href;
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out ${
+              isActive
+                ? "bg-white/20 shadow-lg scale-110"
+                : "hover:bg-white/10 hover:scale-105"
+            }`}
+            title={label}
+          >
+            <Icon size={24} className={isActive ? "text-blue-400" : "text-white"} />
+          </Link>
+        );
+      })}
 
-        <div className="flex items-center gap-2 sm:gap-6">
-          {links.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? "bg-white/10 text-white shadow-sm border border-white/5"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Icon size={18} className={isActive ? "text-blue-400" : ""} />
-                <span className="hidden md:block text-sm font-medium">{label}</span>
-              </Link>
-            );
-          })}
-        </div>
+      <div className="w-px h-8 bg-white/10 mx-1" />
 
-        <div>
-          {user ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-white/20" />
-                ) : (
-                  <UserCircle className="w-8 h-8 text-white/70" />
-                )}
-                <span className="hidden sm:block text-sm font-medium text-white/90">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Developer'}
-                </span>
-              </div>
-              <button
-                onClick={signOut}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 border border-white/10 text-white/80 transition-all duration-300 text-sm font-medium"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:block">Sign Out</span>
-              </button>
-            </div>
+      <div className="relative">
+        <button
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-white/10 hover:scale-105"
+        >
+          {user?.user_metadata?.avatar_url ? (
+            <img src={user.user_metadata.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-white/20" />
           ) : (
-            <button
-              onClick={signIn}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 border border-white/10 transition-all duration-300 text-sm font-medium"
-            >
-              <LogIn size={16} />
-              <span className="hidden sm:block">Sign In</span>
-            </button>
+            <UserCircle className="w-8 h-8 text-white/70" />
           )}
-        </div>
+        </button>
+
+        {showProfileMenu && (
+          <div className="absolute bottom-full mb-4 right-0 w-48 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50">
+            <Link
+              href="/settings"
+              onClick={() => setShowProfileMenu(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition-all text-sm"
+            >
+              <Settings size={16} />
+              Settings
+            </Link>
+            <button
+              onClick={() => {
+                setShowProfileMenu(false);
+                signOut();
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-500/20 text-red-400/80 hover:text-red-400 transition-all text-sm w-full text-left"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
+        )}
       </div>
-    </nav>
+    </div>
   );
 }

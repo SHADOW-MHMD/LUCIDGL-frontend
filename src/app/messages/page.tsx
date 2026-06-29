@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldAlert, Compass, MessageSquare, PlusSquare } from "lucide-react";
+import { ShieldAlert, Compass, MessageSquare, PlusSquare, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Community, Channel, Profile } from "@/types";
 import { ChatArea } from "@/components/chat/ChatArea";
@@ -21,6 +22,7 @@ interface MemberWithRole extends Profile { role: string; }
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
@@ -280,6 +282,16 @@ export default function MessagesPage() {
 
       {/* FLOATING BOTTOM DOCK */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl z-50">
+        <button 
+          onClick={() => router.push('/reels')}
+          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-white/10 hover:scale-105"
+          title="Back to Reels"
+        >
+          <ArrowLeft size={24} className="text-white" />
+        </button>
+        
+        <div className="w-px h-8 bg-white/10 mx-1" />
+
         {/* DMs / Home */}
         <button 
           onClick={() => setSelectedCommunityId(null)} 
