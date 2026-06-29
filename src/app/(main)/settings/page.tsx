@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Save, Loader2, User2, Link2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
 
@@ -92,32 +93,12 @@ export default function SettingsPage() {
   const nitroTier = profile?.nitro_tier ?? 0;
 
   return (
-    <div className="min-h-screen pt-28 pb-16 px-4">
-      {/* Nitro shimmer keyframes */}
-      <style>{`
-        @keyframes nitroShimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        .nitro-badge {
-          background: linear-gradient(90deg, #b8860b, #ffd700, #ffec8b, #ffd700, #b8860b);
-          background-size: 200% auto;
-          animation: nitroShimmer 2.5s linear infinite;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .nitro-border {
-          border-color: #ffd700;
-          box-shadow: 0 0 16px 2px rgba(255,215,0,0.18);
-          animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite;
-        }
-        @keyframes pulse {
-          0%,100% { box-shadow: 0 0 16px 2px rgba(255,215,0,0.18); }
-          50%      { box-shadow: 0 0 28px 6px rgba(255,215,0,0.38); }
-        }
-      `}</style>
-
+    <motion.div
+      className="min-h-screen pt-28 pb-16 px-4"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div className="max-w-xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -127,10 +108,15 @@ export default function SettingsPage() {
 
         {loading ? (
           <div className="flex justify-center py-24">
-            <Loader2 className="text-white/40 animate-spin" size={40} />
+            <Loader2 className="text-indigo-400/40 animate-spin" size={40} />
           </div>
         ) : (
-          <div className={`bg-white/[0.03] backdrop-blur-lg border rounded-2xl p-6 space-y-6 transition-all duration-300 ${nitroTier > 0 ? "nitro-border border" : "border-white/[0.1]"}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.15 }}
+            className={`bg-white/[0.03] backdrop-blur-sm border rounded-2xl p-6 space-y-6 transition-all duration-300 ${nitroTier > 0 ? "nitro-border border" : "border-white/[0.08]"}`}
+          >
             {/* Nitro badge */}
             {nitroTier > 0 && (
               <div className="flex items-center justify-center">
@@ -143,27 +129,30 @@ export default function SettingsPage() {
             {/* Avatar preview */}
             <div className="flex items-center gap-4">
               {avatarUrl ? (
-                <img
+                <motion.img
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
                   src={avatarUrl}
                   alt="Avatar preview"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-white/[0.12]"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
-                  <User2 size={28} className="text-white/40" />
+                <div className="w-16 h-16 rounded-full bg-white/[0.06] border-2 border-white/[0.12] flex items-center justify-center">
+                  <User2 size={28} className="text-white/30" />
                 </div>
               )}
               <div>
                 <p className="text-white font-semibold">{profile?.username ?? user.email?.split("@")[0]}</p>
-                <p className="text-white/40 text-xs">{user.email}</p>
+                <p className="text-white/35 text-xs">{user.email}</p>
               </div>
             </div>
 
             <form onSubmit={handleSave} className="space-y-5">
               {/* Avatar URL */}
               <div className="space-y-1.5">
-                <label className="text-white/70 text-xs font-medium flex items-center gap-1.5">
+                <label className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
                   <Link2 size={12} /> Avatar URL
                 </label>
                 <input
@@ -171,13 +160,13 @@ export default function SettingsPage() {
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
                   placeholder="https://example.com/avatar.png"
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-colors"
                 />
               </div>
 
               {/* Bio */}
               <div className="space-y-1.5">
-                <label className="text-white/70 text-xs font-medium flex items-center justify-between">
+                <label className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center justify-between">
                   <span className="flex items-center gap-1.5"><User2 size={12} /> Bio</span>
                   <span className={`tabular-nums ${bio.length > 140 ? "text-red-400" : "text-white/30"}`}>{bio.length}/160</span>
                 </label>
@@ -187,28 +176,49 @@ export default function SettingsPage() {
                   placeholder="Tell the community about yourself..."
                   rows={3}
                   maxLength={160}
-                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-blue-500/50 resize-none transition-colors"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 resize-none transition-colors"
                 />
               </div>
 
-              {saveError && (
-                <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{saveError}</p>
-              )}
-              {saveSuccess && (
-                <p className="text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">✓ Profile saved successfully!</p>
-              )}
+              <AnimatePresence>
+                {saveError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
+                  >
+                    {saveError}
+                  </motion.p>
+                )}
+                {saveSuccess && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2"
+                  >
+                    ✓ Profile saved successfully!
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={saving}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all duration-300 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                whileHover={!saving ? { scale: 1.02 } : {}}
+                whileTap={!saving ? { scale: 0.97 } : {}}
+                transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
               >
                 {saving ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> Save Profile</>}
-              </button>
+              </motion.button>
             </form>
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

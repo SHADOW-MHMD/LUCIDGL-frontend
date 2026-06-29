@@ -17,6 +17,7 @@ import { ServerRail } from "@/components/chat/ServerRail";
 import { ChannelSidebar } from "@/components/chat/ChannelSidebar";
 import { MemberSidebar } from "@/components/chat/MemberSidebar";
 import { LeaderboardModal } from "@/components/chat/LeaderboardModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -159,7 +160,7 @@ export default function MessagesPage() {
     <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] gap-6 text-center">
       <ShieldAlert className="w-16 h-16 text-red-400 opacity-50" />
       <h2 className="text-2xl font-bold text-white/90">Authentication Required</h2>
-      <p className="text-slate-400">Sign in to access messages and communities.</p>
+      <p className="text-white/50">Sign in to access messages and communities.</p>
     </div>
   );
 
@@ -207,13 +208,18 @@ export default function MessagesPage() {
             }}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-black/10">
-            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-              <Compass className="w-10 h-10 text-white/20" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-[#0a0a0f]/40"
+          >
+            <div className="w-20 h-20 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-6">
+              <Compass className="w-10 h-10 text-white/15" />
             </div>
-            <h2 className="text-white/60 text-xl font-bold mb-2">No channel selected</h2>
+            <h2 className="text-white/50 text-lg font-semibold mb-2">No channel selected</h2>
             <p className="text-white/30 max-w-sm text-sm">Pick a channel from the sidebar to start chatting.</p>
-          </div>
+          </motion.div>
         )}
       </div>
 
@@ -281,34 +287,43 @@ export default function MessagesPage() {
       )}
 
       {/* FLOATING BOTTOM DOCK */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl z-50">
-        <button 
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-[#0d0d1a]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl z-50">
+        <motion.button
           onClick={() => router.push('/reels')}
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-white/10 hover:scale-105"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors hover:bg-white/[0.06]"
           title="Back to Reels"
         >
           <ArrowLeft size={24} className="text-white" />
-        </button>
+        </motion.button>
         
-        <div className="w-px h-8 bg-white/10 mx-1" />
+        <div className="w-px h-8 bg-white/[0.08] mx-1" />
 
         {/* DMs / Home */}
-        <button 
-          onClick={() => setSelectedCommunityId(null)} 
-          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out ${selectedCommunityId === null ? 'bg-white/20 shadow-lg scale-110' : 'hover:bg-white/10 hover:scale-105'}`}
+        <motion.button
+          onClick={() => setSelectedCommunityId(null)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${selectedCommunityId === null ? 'bg-indigo-600/20 shadow-lg shadow-indigo-500/20' : 'hover:bg-white/[0.06]'}`}
           title="Direct Messages"
         >
           <MessageSquare size={24} className="text-white" />
-        </button>
+        </motion.button>
         
-        <div className="w-px h-8 bg-white/10 mx-1" />
+        <div className="w-px h-8 bg-white/[0.08] mx-1" />
 
         {/* Communities */}
         {communities.map(c => (
-          <button 
-            key={c.id} 
-            onClick={() => setSelectedCommunityId(c.id)} 
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out overflow-hidden ${selectedCommunityId === c.id ? 'bg-white/20 shadow-lg ring-2 ring-cyan-500/50 scale-110' : 'bg-white/5 hover:bg-white/10 hover:scale-105'}`}
+          <motion.button
+            key={c.id}
+            onClick={() => setSelectedCommunityId(c.id)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors overflow-hidden ${selectedCommunityId === c.id ? 'ring-2 ring-cyan-400/40 bg-indigo-600/15 shadow-lg shadow-cyan-500/10' : 'bg-white/[0.04] hover:bg-white/[0.07]'}`}
             title={c.name}
           >
             {c.logo_url ? (
@@ -316,19 +331,22 @@ export default function MessagesPage() {
             ) : (
               <div className="text-white font-bold text-lg">{c.name.charAt(0).toUpperCase()}</div>
             )}
-          </button>
+          </motion.button>
         ))}
         
-        <div className="w-px h-8 bg-white/10 mx-1" />
+        <div className="w-px h-8 bg-white/[0.08] mx-1" />
         
         {/* Add Community */}
-        <button 
-          onClick={() => setIsCreatingCommunity(true)} 
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-white/10 hover:scale-105 text-cyan-400"
+        <motion.button
+          onClick={() => setIsCreatingCommunity(true)}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors hover:bg-white/[0.06] text-cyan-400"
           title="Create Community"
         >
           <PlusSquare size={24} />
-        </button>
+        </motion.button>
       </div>
     </div>
   );
