@@ -349,7 +349,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="absolute right-0 top-0 h-full w-[350px] bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/[0.08] z-50 shadow-2xl flex flex-col"
+            className="absolute right-0 top-0 h-full w-[350px] bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/[0.08] z-[100] shadow-2xl flex flex-col"
           >
             <div className="h-16 flex items-center justify-between px-6 border-b border-white/[0.08] shrink-0">
                <h2 className="text-white font-semibold flex items-center gap-2"><Settings className="w-4 h-4"/> Community Info</h2>
@@ -371,20 +371,21 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
                   <h3 className="text-xl font-bold text-white/90">{selectedCommunity.name}</h3>
                   <p className="text-white/50 text-sm mt-1">{members.length} member{members.length !== 1 ? 's' : ''}</p>
                   
-                  {isAdmin && (
-                    <div className="mt-6 w-full p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between cursor-pointer hover:bg-white/[0.05] transition-colors" onClick={handleTogglePrivacy}>
-                      <div className="flex items-center gap-3">
-                        {isPrivate ? <Lock className="w-5 h-5 text-rose-400" /> : <Unlock className="w-5 h-5 text-emerald-400" />}
-                        <div className="text-left">
-                          <p className="text-white/90 text-sm font-medium">{isPrivate ? "Restricted Private" : "Public Space"}</p>
-                          <p className="text-white/40 text-xs">Channel Privacy Status</p>
-                        </div>
-                      </div>
-                      <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isPrivate ? 'bg-violet-600' : 'bg-white/10'}`}>
-                        <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-4' : 'translate-x-0'}`} />
+                  <div 
+                    className={`mt-6 w-full p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between transition-colors ${isAdmin ? 'cursor-pointer hover:bg-white/[0.05]' : 'opacity-80'}`} 
+                    onClick={isAdmin ? handleTogglePrivacy : undefined}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isPrivate ? <Lock className="w-5 h-5 text-rose-400" /> : <Unlock className="w-5 h-5 text-emerald-400" />}
+                      <div className="text-left">
+                        <p className="text-white/90 text-sm font-medium">{isPrivate ? "Restricted Private" : "Public Space"}</p>
+                        <p className="text-white/40 text-xs">Channel Privacy</p>
                       </div>
                     </div>
-                  )}
+                    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isPrivate ? 'bg-violet-600' : 'bg-white/10'}`}>
+                      <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
                </div>
 
                {/* Section 2: Member Registry */}

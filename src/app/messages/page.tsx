@@ -13,7 +13,6 @@ import { CreateChannelModal } from "@/components/chat/CreateChannelModal";
 import { AddMemberModal } from "@/components/chat/AddMemberModal";
 import { ServerSettingsModal } from "@/components/chat/ServerSettingsModal";
 import { ContextMenu } from "@/components/ui/ContextMenu";
-import { MemberSidebar } from "@/components/chat/MemberSidebar";
 import { LeaderboardModal } from "@/components/chat/LeaderboardModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChannelSidebar } from "@/components/chat/ChannelSidebar";
