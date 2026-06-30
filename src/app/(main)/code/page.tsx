@@ -134,21 +134,35 @@ export default function CodeHubPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6"
           >
-            <h2 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              <Upload size={18} className="text-indigo-400" /> Upload a File
-            </h2>
-            <form onSubmit={handleUpload} className="space-y-4">
+            <form onSubmit={handleUpload} className="bg-[#0d0d1a] border border-white/[0.08] rounded-2xl p-6 shadow-2xl space-y-6">
               <motion.div
-                className="group w-full min-h-[400px] rounded-3xl border-2 border-dashed border-white/[0.08] bg-white/[0.02] flex flex-col items-center justify-center relative overflow-hidden transition-colors cursor-pointer hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]"
                 onClick={() => fileInputRef.current?.click()}
-                whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.04)" }}
+                whileHover={{ scale: 1.01, borderColor: "rgb(139, 92, 246)" }}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "rgb(139, 92, 246)"; }}
+                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = ""; }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.style.borderColor = "";
+                  const dropped = e.dataTransfer.files?.[0];
+                  if (dropped) {
+                     if (dropped.size > 20 * 1024 * 1024) {
+                       setUploadError("File exceeds 20MB limit");
+                       setSelectedFile(null);
+                     } else {
+                       setSelectedFile(dropped);
+                       setUploadError(null);
+                     }
+                  }
+                }}
+                className={`relative flex flex-col items-center justify-center w-full min-h-[300px] rounded-xl border-2 border-dashed transition-colors cursor-pointer overflow-hidden ${
+                  selectedFile ? "border-violet-500/50 bg-violet-500/5" : "border-white/20 bg-white/[0.02]"
+                }`}
               >
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".zip,.apk"
+                  accept=".zip,.apk,.rar"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -162,24 +176,43 @@ export default function CodeHubPage() {
                     }
                   }}
                 />
+                
                 {selectedFile ? (
-                  <p className="text-white/90 font-medium">{selectedFile.name}</p>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto rounded-xl bg-violet-500/20 flex items-center justify-center mb-4">
+                      <FileArchive className="w-8 h-8 text-violet-400" />
+                    </div>
+                    <p className="text-white font-medium">{selectedFile.name}</p>
+                    <p className="text-white/50 text-sm mt-1">
+                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
                 ) : (
-                  <>
-                    <FileArchive className="mx-auto text-white/25 group-hover:text-indigo-400 transition-colors mb-2" size={32} />
-                    <p className="text-white/50 text-sm">Click to select a <span className="text-cyan-400 font-medium">.zip</span> or <span className="text-indigo-400 font-medium">.apk</span> file</p>
-                    <p className="text-white/30 text-xs mt-1">Max size: 20 MB</p>
-                  </>
+                  <div className="text-center">
+                    <div className="relative w-16 h-16 mx-auto mb-4">
+                      <div className="absolute inset-0 bg-white/5 rounded-xl flex items-center justify-center">
+                        <FileArchive className="w-8 h-8 text-white/60" />
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-violet-500 rounded-full flex items-center justify-center border-2 border-[#0d0d1a]">
+                        <span className="text-white text-lg font-bold leading-none mb-0.5">+</span>
+                      </div>
+                    </div>
+                    <p className="text-white font-medium mb-1">
+                      <span className="text-violet-400">Choose a file</span> or drag & drop it here
+                    </p>
+                    <p className="text-gray-400 text-sm">ZIP, RAR, and APK formats, up to 500MB</p>
+                  </div>
                 )}
               </motion.div>
 
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Caption (optional)..."
-                rows={2}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none transition-colors"
-              />
+              <div>
+                <input
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  placeholder="Add a caption..."
+                  className="w-full bg-white/[0.02] border-b border-white/[0.08] text-white px-4 py-3 placeholder:text-white/30 focus:outline-none focus:border-violet-500 transition-colors"
+                />
+              </div>
 
               <AnimatePresence>
                 {uploadError && (
@@ -187,7 +220,7 @@ export default function CodeHubPage() {
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
+                    className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-center"
                   >
                     {uploadError}
                   </motion.p>
@@ -197,7 +230,7 @@ export default function CodeHubPage() {
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2"
+                    className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3 text-center"
                   >
                     ✓ File uploaded successfully!
                   </motion.p>
@@ -207,12 +240,17 @@ export default function CodeHubPage() {
               <motion.button
                 type="submit"
                 disabled={!selectedFile || uploading}
-                whileHover={!selectedFile || uploading ? {} : { scale: 1.02 }}
-                whileTap={!selectedFile || uploading ? {} : { scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                whileTap={!selectedFile || uploading ? {} : { scale: 0.98 }}
+                className="w-full py-4 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:hover:bg-violet-600 text-white font-bold transition-colors flex items-center justify-center gap-2"
               >
-                {uploading ? <><Loader2 size={16} className="animate-spin" /> Uploading...</> : <><Upload size={16} /> Upload</>}
+                {uploading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload"
+                )}
               </motion.button>
             </form>
           </motion.div>

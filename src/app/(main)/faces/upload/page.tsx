@@ -107,7 +107,7 @@ export default function FacesUploadPage() {
           <p className="text-white/40 text-sm mt-4">Redirecting to feed...</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="bg-[#0d0d1a] border border-white/[0.08] rounded-2xl p-6 shadow-2xl space-y-6">
           {errorMsg && (
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
               {errorMsg}
@@ -116,23 +116,31 @@ export default function FacesUploadPage() {
 
           <motion.div
             onClick={() => fileInputRef.current?.click()}
-            whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.04)" }}
-            className={`relative flex flex-col items-center justify-center w-full min-h-[400px] rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
-              file ? "border-cyan-500/50 bg-cyan-500/5" : "border-white/[0.08] bg-white/[0.02] hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]"
+            whileHover={{ scale: 1.01, borderColor: "rgb(139, 92, 246)" }}
+            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "rgb(139, 92, 246)"; }}
+            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = ""; }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = "";
+              const dropped = e.dataTransfer.files?.[0];
+              if (dropped) handleFileChange({ target: { files: [dropped] } } as any);
+            }}
+            className={`relative flex flex-col items-center justify-center w-full min-h-[300px] rounded-xl border-2 border-dashed transition-colors cursor-pointer overflow-hidden ${
+              file ? "border-violet-500/50 bg-violet-500/5" : "border-white/20 bg-white/[0.02]"
             }`}
           >
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="video/mp4,video/webm"
+              accept="video/mp4,video/webm,image/jpeg,image/png"
               className="hidden"
             />
             
             {file ? (
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4">
-                  <CheckCircle className="w-8 h-8 text-cyan-400" />
+                <div className="w-16 h-16 mx-auto rounded-xl bg-violet-500/20 flex items-center justify-center mb-4">
+                  <CheckCircle className="w-8 h-8 text-violet-400" />
                 </div>
                 <p className="text-white font-medium">{file.name}</p>
                 <p className="text-white/50 text-sm mt-1">
@@ -141,47 +149,47 @@ export default function FacesUploadPage() {
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto rounded-xl bg-white/10 flex items-center justify-center mb-4">
-                  <Upload className="w-8 h-8 text-white/60" />
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 bg-white/5 rounded-xl flex items-center justify-center">
+                    <Upload className="w-8 h-8 text-white/60" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-violet-500 rounded-full flex items-center justify-center border-2 border-[#0d0d1a]">
+                    <span className="text-white text-lg font-bold leading-none mb-0.5">+</span>
+                  </div>
                 </div>
-                <p className="text-white font-medium mb-1">Click to select or drag & drop</p>
-                <p className="text-white/50 text-sm">MP4 or WebM (max 20MB)</p>
+                <p className="text-white font-medium mb-1">
+                  <span className="text-violet-400">Choose a file</span> or drag & drop it here
+                </p>
+                <p className="text-gray-400 text-sm">JPEG, PNG, and MP4 formats, up to 100MB</p>
               </div>
             )}
           </motion.div>
 
           <div>
-            <label className="block text-white/80 text-sm font-medium mb-2">Caption</label>
-            <textarea
+            <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               maxLength={150}
-              placeholder="What's this about?"
-              rows={3}
-              className="w-full bg-white/[0.03] border border-white/[0.08] text-white rounded-xl px-4 py-3 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all resize-none"
+              placeholder="Add a caption..."
+              className="w-full bg-white/[0.02] border-b border-white/[0.08] text-white px-4 py-3 placeholder:text-white/30 focus:outline-none focus:border-violet-500 transition-colors"
             />
-            <div className="text-right mt-1 text-xs text-white/40">
-              {caption.length} / 150
-            </div>
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={!file || isUploading}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:hover:from-cyan-500 disabled:hover:to-blue-600 text-white font-bold shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2"
+            whileTap={!file || isUploading ? {} : { scale: 0.98 }}
+            className="w-full py-4 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:hover:bg-violet-600 text-white font-bold transition-colors flex items-center justify-center gap-2"
           >
             {isUploading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Encrypting & Streaming to Neural Net...
+                Uploading...
               </>
             ) : (
-              <>
-                <Upload className="w-5 h-5" />
-                Stream to Faces
-              </>
+              "Upload"
             )}
-          </button>
+          </motion.button>
         </form>
       )}
     </div>
