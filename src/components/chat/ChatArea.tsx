@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Hash, Users, Trash2, MoreHorizontal, Smile, Edit2 } from "lucide-react";
+import { Send, Hash, Users, Trash2, MoreHorizontal, Smile, Edit2, Paperclip, Mic } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseMessage } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,12 +13,13 @@ interface ChatAreaProps {
   channelName: string;
   type: 'community' | 'dm';
   communityRole?: string;
+  avatarUrl?: string;
   onChannelDeleted?: () => void;
 }
 
 const userLevelCache: Record<string, any> = {};
 
-export function ChatArea({ channelId, channelName, type, communityRole, onChannelDeleted }: ChatAreaProps) {
+export function ChatArea({ channelId, channelName, type, communityRole, avatarUrl, onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [text, setText] = useState("");
@@ -263,7 +264,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
     const parts = text.split(/(\s+)/g);
     return parts.map((part, i) => {
       if (/^@[a-zA-Z0-9_]+$/.test(part)) {
-        return <span key={i} className="text-cyan-400 font-semibold drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">{part}</span>;
+        return <span key={i} className="text-cyan-400 font-semibold">{part}</span>;
       }
       if (/^https?:\/\/\S+$/.test(part)) {
         return <a key={i} href={part} target="_blank" rel="noreferrer" className="text-blue-400 underline">{part}</a>;
@@ -275,32 +276,51 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   const typingArray = Object.values(typingUsers);
 
   return (
-    <div className="flex flex-col h-full bg-white/[0.02] backdrop-blur-lg relative shadow-2xl">
-      <div className="h-16 border-b border-white/[0.1] flex items-center px-8 shrink-0 z-10 bg-white/[0.02] justify-between backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          {type === 'community' ? <Hash className="w-5 h-5 text-white/50" /> : <Users className="w-5 h-5 text-white/50" />}
-          <h3 className="text-white font-semibold">{channelName}</h3>
+    <div className="flex flex-col h-full bg-[#0a0a0f] relative w-full">
+      {/* Top Header */}
+      <div className="h-16 border-b border-white/[0.08] flex items-center px-6 shrink-0 z-10 bg-[#0a0a0f] justify-between">
+        <div className="flex items-center gap-3">
+          {type === 'dm' ? (
+            avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-violet-600/20 flex items-center justify-center text-violet-300 font-bold">
+                {channelName.charAt(0).toUpperCase()}
+              </div>
+            )
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-white/[0.05] flex items-center justify-center">
+              <Hash className="w-5 h-5 text-white/50" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-white font-semibold text-[15px]">{channelName}</h3>
+            <p className="text-white/40 text-[13px]">
+              {type === 'dm' ? (typingArray.length > 0 ? "typing..." : "online") : `${messages.length} messages`}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 flex flex-col gap-2 no-scrollbar">
+      {/* Chat History */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 no-scrollbar bg-[url('/chat-pattern.png')] bg-repeat bg-black/20 bg-blend-overlay">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex-1 flex flex-col justify-end pb-8">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-              {type === 'community' ? <Hash className="w-8 h-8 text-white/60" /> : <Users className="w-8 h-8 text-white/60" />}
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+              {type === 'community' ? <Hash className="w-8 h-8 text-white/40" /> : <Users className="w-8 h-8 text-white/40" />}
             </div>
-            <h1 className="text-white font-bold text-3xl mb-2">Welcome to #{channelName}!</h1>
-            <p className="text-white/50">This is the beginning of this channel's history.</p>
+            <h1 className="text-white font-medium text-lg mb-1">No messages here yet...</h1>
+            <p className="text-white/40 text-sm">Send a message or reply with a sticker.</p>
           </div>
         ) : (
           messages.map((msg, idx) => {
+            const isMe = msg.user_id === user?.id;
             const isConsecutive = idx > 0 && messages[idx - 1].user_id === msg.user_id &&
               (new Date(msg.created_at).getTime() - new Date(messages[idx - 1].created_at).getTime()) < 5 * 60 * 1000;
-            const isMe = msg.user_id === user?.id;
             const canDelete = isMe || isAdmin;
             
             let reactionsArray: any[] = [];
@@ -311,61 +331,67 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
             return (
               <div
                 key={msg.id}
-                className={`group relative flex gap-4 px-4 py-0.5 rounded-md hover:bg-white/5 transition-colors ${isConsecutive ? 'mt-0' : 'mt-4'}`}
+                className={`group relative flex gap-3 max-w-[85%] ${isMe ? 'self-end flex-row-reverse' : 'self-start'} ${isConsecutive ? 'mt-0' : 'mt-2'}`}
                 onContextMenu={e => handleMsgContextMenu(e, msg)}
               >
-                {!isConsecutive ? (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shrink-0 overflow-hidden shadow-md mt-0.5">
+                {!isConsecutive && !isMe ? (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shrink-0 overflow-hidden mt-auto mb-1">
                     {msg.profiles?.avatar_url && <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
                   </div>
+                ) : !isConsecutive && isMe ? (
+                   <div className="w-9 shrink-0" /> 
                 ) : (
-                  <div className="w-10 shrink-0 flex justify-center items-center">
-                    <span className="text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+                  <div className="w-9 shrink-0" />
                 )}
 
-                <div className="flex-1 min-w-0">
-                  {!isConsecutive && (
-                    <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="font-medium text-white text-[15px]">{msg.profiles?.username || 'Unknown'}</span>
+                <div className={`relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                  {!isConsecutive && !isMe && type === 'community' && (
+                    <div className="flex items-center gap-2 mb-1 px-1">
+                      <span className="font-medium text-violet-400 text-[13px]">{msg.profiles?.username || 'Unknown'}</span>
                       <LevelBadge level={(msg.profiles as any)?.current_level || 0} />
-                      <span className="text-[11px] text-white/40">
-                        {new Date(msg.created_at).toLocaleDateString()} {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
                   )}
                   
-                  {editingMessageId === msg.id ? (
-                    <div className="mt-1">
-                      <input 
-                        type="text" 
-                        value={editValue} 
-                        onChange={(e) => setEditValue(e.target.value)} 
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleEditSubmit(msg.id);
-                          if (e.key === 'Escape') setEditingMessageId(null);
-                        }}
-                        autoFocus
-                        className="w-full bg-black/40 border border-blue-500/50 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                      />
-                      <div className="text-[10px] text-white/40 mt-1">escape to cancel, enter to save</div>
-                    </div>
-                  ) : (
-                    <p className="text-white/80 text-[15px] leading-8 break-words tracking-wide">
-                      {renderText(msg.text)}
-                      {msg.is_edited && <span className="text-[10px] text-white/30 ml-2">(edited)</span>}
-                    </p>
-                  )}
+                  <div className={`relative px-4 py-2.5 rounded-2xl ${
+                    isMe 
+                      ? 'bg-violet-600 text-white rounded-br-sm' 
+                      : 'bg-white/[0.08] text-white rounded-bl-sm'
+                  }`}>
+                    {editingMessageId === msg.id ? (
+                      <div className="min-w-[200px]">
+                        <input 
+                          type="text" 
+                          value={editValue} 
+                          onChange={(e) => setEditValue(e.target.value)} 
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEditSubmit(msg.id);
+                            if (e.key === 'Escape') setEditingMessageId(null);
+                          }}
+                          autoFocus
+                          className="w-full bg-black/40 border border-violet-500/50 text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-500 text-[15px]" 
+                        />
+                        <div className="text-[10px] text-white/60 mt-1">escape to cancel, enter to save</div>
+                      </div>
+                    ) : (
+                      <div className="flex items-end gap-3">
+                        <p className="text-[15px] leading-snug whitespace-pre-wrap break-words">
+                          {renderText(msg.text)}
+                        </p>
+                        <span className={`text-[11px] shrink-0 translate-y-0.5 ${isMe ? 'text-violet-200/70' : 'text-white/40'}`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {msg.is_edited && ' (edited)'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   
                   {reactionsArray.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                       {reactionsArray.map((r, i) => (
                         <button 
                           key={i} 
                           onClick={() => handleReact(r.emoji, msg.id, reactionsArray)}
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${r.userIds.includes(user?.id) ? 'bg-blue-500/20 border-blue-500/50 text-blue-200' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}`}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${r.userIds.includes(user?.id) ? 'bg-violet-500/20 border-violet-500/50 text-violet-200' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}`}
                         >
                           <span>{r.emoji}</span>
                           <span className="font-medium">{r.userIds.length}</span>
@@ -373,50 +399,89 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                       ))}
                     </div>
                   )}
-                </div>
 
-                {/* Hover actions */}
-                <div className="absolute right-4 -top-4 hidden group-hover:flex items-center gap-0.5 bg-[#2b2d31]/90 backdrop-blur-md border border-white/10 rounded-md shadow-lg py-0.5 px-1 z-10">
-                    <button
-                      onClick={() => setShowEmojiPicker(msg.id)}
-                      className="p-1.5 rounded text-white/50 hover:text-yellow-400 hover:bg-white/10 transition-colors"
-                      title="React"
-                    >
+                  {/* Hover actions */}
+                  <div className={`absolute top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-[#1a1b26] border border-white/10 rounded-xl shadow-lg py-1 px-1 z-10 ${isMe ? 'right-full mr-2' : 'left-full ml-2'}`}>
+                    <button onClick={() => setShowEmojiPicker(msg.id)} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
                       <Smile className="w-4 h-4" />
                     </button>
                     {isMe && (
-                      <button
-                        onClick={() => { setEditingMessageId(msg.id); setEditValue(msg.text); }}
-                        className="p-1.5 rounded text-white/50 hover:text-blue-400 hover:bg-white/10 transition-colors"
-                        title="Edit"
-                      >
+                      <button onClick={() => { setEditingMessageId(msg.id); setEditValue(msg.text); }} className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
                         <Edit2 className="w-4 h-4" />
                       </button>
                     )}
                     {canDelete && (
-                      <button
-                        onClick={() => deleteMessage(msg.id)}
-                        className="p-1.5 rounded text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Delete Message"
-                      >
+                      <button onClick={() => deleteMessage(msg.id)} className="p-1.5 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
-                
-                {/* Emoji Picker */}
-                {showEmojiPicker === msg.id && (
-                  <div className="absolute right-8 top-0 z-50">
-                    <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(null)} />
-                    <div className="relative z-50 shadow-2xl border border-white/10 rounded-xl overflow-hidden">
-                      <Picker data={data} onEmojiSelect={(e: any) => handleReact(e.native, msg.id, msg.reactions)} theme="dark" />
+
+                  {/* Emoji Picker */}
+                  {showEmojiPicker === msg.id && (
+                    <div className={`absolute top-0 z-50 ${isMe ? 'right-full mr-12' : 'left-full ml-12'}`}>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(null)} />
+                      <div className="relative z-50 shadow-2xl border border-white/10 rounded-xl overflow-hidden">
+                        <Picker data={data} onEmojiSelect={(e: any) => handleReact(e.native, msg.id, msg.reactions)} theme="dark" />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })
         )}
+      </div>
+
+      {/* Input Bar */}
+      <div className="shrink-0 bg-[#0a0a0f]">
+        {typingArray.length > 0 && (
+          <div className="px-6 py-1 text-[13px] text-violet-400 font-medium">
+            {typingArray.length === 1 
+              ? `${typingArray[0].username} is typing...` 
+              : typingArray.length === 2 
+                ? `${typingArray[0].username} and ${typingArray[1].username} are typing...` 
+                : 'Several people are typing...'}
+          </div>
+        )}
+        <div className="px-4 pb-4 pt-2">
+          <form onSubmit={handleSend} className="flex items-end gap-2 max-w-4xl mx-auto">
+            <button type="button" className="p-3 text-white/40 hover:text-white hover:bg-white/5 rounded-full transition-colors shrink-0 mb-1">
+              <Paperclip className="w-5 h-5" />
+            </button>
+            <div className="flex-1 bg-white/[0.05] rounded-3xl flex items-end">
+              <textarea
+                value={text}
+                onChange={handleTextChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Write a message..."
+                rows={1}
+                className="w-full bg-transparent text-white placeholder-white/40 px-4 py-3 focus:outline-none resize-none max-h-32 text-[15px]"
+                style={{ minHeight: '44px' }}
+              />
+              <button type="button" className="p-3 text-white/40 hover:text-white transition-colors shrink-0">
+                <Smile className="w-5 h-5" />
+              </button>
+            </div>
+            {text.trim() ? (
+              <button
+                type="submit"
+                className="p-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-full transition-colors shrink-0 mb-0.5 shadow-lg shadow-violet-500/20"
+              >
+                <Send className="w-5 h-5 -ml-0.5" />
+              </button>
+            ) : (
+              <button type="button" className="p-3.5 bg-white/[0.05] hover:bg-white/[0.1] text-white/60 rounded-full transition-colors shrink-0 mb-0.5">
+                <Mic className="w-5 h-5" />
+              </button>
+            )}
+          </form>
+        </div>
       </div>
 
       {/* Right-click context menu */}
@@ -430,42 +495,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
           ]}
         />
       )}
-
-      {/* Input */}
-      <div className="px-4 pb-6 pt-2 shrink-0">
-        {typingArray.length > 0 && (
-          <div className="px-2 pb-1 text-xs text-white/50 font-medium animate-pulse">
-            {typingArray.length === 1 
-              ? `${typingArray[0].username} is typing...` 
-              : typingArray.length === 2 
-                ? `${typingArray[0].username} and ${typingArray[1].username} are typing...` 
-                : 'Several people are typing...'}
-          </div>
-        )}
-        <form onSubmit={handleSend} className="relative flex items-center bg-white/[0.05] border border-white/[0.1] rounded-2xl shadow-inner focus-within:ring-1 focus-within:ring-violet-500/50 transition-all duration-300">
-          <textarea
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={`Message ${type === 'dm' ? channelName : `#${channelName}`}`}
-            rows={1}
-            className="w-full bg-transparent text-white placeholder-white/40 pl-6 pr-14 py-4 focus:outline-none resize-none max-h-32"
-            style={{ minHeight: '56px' }}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim()}
-            className="absolute right-2 bottom-2 p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 disabled:opacity-30 transition-colors"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
-      </div>
     </div>
   );
 }
