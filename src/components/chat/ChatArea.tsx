@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Hash, Users, Trash2, MoreHorizontal, Smile, Edit2, Paperclip, Mic } from "lucide-react";
+import { Send, Hash, Users, Trash2, MoreHorizontal, Smile, Edit2, Paperclip, Mic, Info, X, ShieldAlert, UserMinus, Settings, Lock, Unlock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { SupabaseMessage } from "@/types";
+import type { SupabaseMessage, Community, Profile } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import { LevelBadge } from "@/components/ui/LevelBadge";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { motion, AnimatePresence } from "framer-motion";
+
+interface MemberWithRole extends Profile { role: string; }
 
 interface ChatAreaProps {
   channelId: string;
@@ -14,12 +17,14 @@ interface ChatAreaProps {
   type: 'community' | 'dm';
   communityRole?: string;
   avatarUrl?: string;
+  selectedCommunity?: Community;
+  members?: MemberWithRole[];
   onChannelDeleted?: () => void;
 }
 
 const userLevelCache: Record<string, any> = {};
 
-export function ChatArea({ channelId, channelName, type, communityRole, avatarUrl, onChannelDeleted }: ChatAreaProps) {
+export function ChatArea({ channelId, channelName, type, communityRole, avatarUrl, selectedCommunity, members = [], onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [text, setText] = useState("");
@@ -33,6 +38,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Record<string, { username: string }>>({});
   
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(selectedCommunity?.is_private ?? false);
+
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [currentUserProfileName, setCurrentUserProfileName] = useState("User");
 
@@ -273,10 +281,32 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
     });
   };
 
+  const handleTogglePrivacy = async () => {
+    if (!selectedCommunity || !isAdmin) return;
+    const newVal = !isPrivate;
+    setIsPrivate(newVal);
+    await supabase.from('communities').update({ is_private: newVal }).eq('id', selectedCommunity.id);
+  };
+
+  const handleKickUser = async (userId: string) => {
+    if (!selectedCommunity || !isAdmin) return;
+    if (window.confirm("Are you sure you want to kick this user?")) {
+      await supabase.from('community_members').delete().eq('community_id', selectedCommunity.id).eq('user_id', userId);
+    }
+  };
+
+  const handleDeleteChannelHub = async () => {
+    if (!isAdmin) return;
+    if (window.confirm("Are you sure you want to delete this channel hub?")) {
+      await supabase.from('channels').delete().eq('id', channelId);
+      if (onChannelDeleted) onChannelDeleted();
+    }
+  };
+
   const typingArray = Object.values(typingUsers);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0f] relative w-full">
+    <div className="flex flex-col h-full bg-[#0a0a0f] relative w-full overflow-hidden">
       {/* Top Header */}
       <div className="h-16 border-b border-white/[0.08] flex items-center px-6 shrink-0 z-10 bg-[#0a0a0f] justify-between">
         <div className="flex items-center gap-3">
@@ -300,7 +330,111 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
             </p>
           </div>
         </div>
+        
+        {type === 'community' && (
+          <button 
+            onClick={() => setIsDrawerOpen(true)}
+            className="w-10 h-10 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white transition-colors"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+        )}
       </div>
+
+      {/* Community Overlay Drawer */}
+      <AnimatePresence>
+        {isDrawerOpen && selectedCommunity && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="absolute right-0 top-0 h-full w-[350px] bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/[0.08] z-50 shadow-2xl flex flex-col"
+          >
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/[0.08] shrink-0">
+               <h2 className="text-white font-semibold flex items-center gap-2"><Settings className="w-4 h-4"/> Community Info</h2>
+               <button onClick={() => setIsDrawerOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                 <X className="w-5 h-5" />
+               </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+               {/* Section 1: Profile & Metadata */}
+               <div className="flex flex-col items-center text-center">
+                  {selectedCommunity.logo_url ? (
+                    <img src={selectedCommunity.logo_url} alt="" className="w-24 h-24 rounded-2xl object-cover border-2 border-white/[0.08] shadow-lg mb-4" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-violet-600/20 flex items-center justify-center text-violet-300 font-bold text-3xl border-2 border-violet-500/30 shadow-lg mb-4">
+                      {selectedCommunity.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-white/90">{selectedCommunity.name}</h3>
+                  <p className="text-white/50 text-sm mt-1">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+                  
+                  {isAdmin && (
+                    <div className="mt-6 w-full p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between cursor-pointer hover:bg-white/[0.05] transition-colors" onClick={handleTogglePrivacy}>
+                      <div className="flex items-center gap-3">
+                        {isPrivate ? <Lock className="w-5 h-5 text-rose-400" /> : <Unlock className="w-5 h-5 text-emerald-400" />}
+                        <div className="text-left">
+                          <p className="text-white/90 text-sm font-medium">{isPrivate ? "Restricted Private" : "Public Space"}</p>
+                          <p className="text-white/40 text-xs">Channel Privacy Status</p>
+                        </div>
+                      </div>
+                      <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isPrivate ? 'bg-violet-600' : 'bg-white/10'}`}>
+                        <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                  )}
+               </div>
+
+               {/* Section 2: Member Registry */}
+               <div>
+                 <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 px-1">Registry</h4>
+                 <div className="space-y-1 bg-white/[0.02] border border-white/[0.08] rounded-xl p-2">
+                   {members.map(member => (
+                     <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] transition-colors group">
+                        <div className="relative">
+                          {member.avatar_url ? (
+                            <img src={member.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-300 font-bold text-sm">
+                              {member.username.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#0a0a0f] bg-emerald-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white/90 text-sm font-medium truncate">{member.username}</p>
+                          <p className={`text-[11px] font-medium ${member.role === 'owner' ? 'text-amber-400' : member.role === 'admin' ? 'text-cyan-400' : 'text-white/40'}`}>
+                            {member.role === 'owner' ? 'Creator' : member.role === 'admin' ? 'Admin' : 'Member'}
+                          </p>
+                        </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Section 3: Admin Power Console */}
+               {isAdmin && (
+                 <div>
+                   <h4 className="text-xs font-semibold text-rose-400/70 uppercase tracking-wider mb-3 px-1">Power Console</h4>
+                   <div className="space-y-2">
+                     <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] text-white/70 hover:text-white transition-colors text-left text-sm font-medium">
+                       <ShieldAlert className="w-4 h-4 text-cyan-400" /> Assign Admin Privileges
+                     </button>
+                     <button onClick={() => handleKickUser(members[members.length - 1]?.id)} className="w-full flex items-center gap-3 p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors text-left text-sm font-medium">
+                       <UserMinus className="w-4 h-4" /> Kick User from Space
+                     </button>
+                     <button onClick={handleDeleteChannelHub} className="w-full flex items-center gap-3 p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors text-left text-sm font-medium">
+                       <Trash2 className="w-4 h-4" /> Delete Channel Hub
+                     </button>
+                   </div>
+                 </div>
+               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat History */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 no-scrollbar bg-[url('/chat-pattern.png')] bg-repeat bg-black/20 bg-blend-overlay">

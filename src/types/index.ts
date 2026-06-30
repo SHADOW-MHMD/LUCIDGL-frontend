@@ -60,6 +60,7 @@ export interface Community {
   owner_id: string;
   logo_url?: string;
   role?: string; // current user's role in this community
+  is_private?: boolean;
 }
 
 export interface Channel {

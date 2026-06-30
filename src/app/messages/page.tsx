@@ -377,6 +377,8 @@ export default function MessagesPage() {
                 ? selectedChannel.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles?.avatar_url 
                 : undefined
             }
+            selectedCommunity={selectedCommunity}
+            members={members}
             onChannelDeleted={() => {
               setChannels(prev => prev.filter(c => c.id !== selectedChannel.id));
               setSelectedChannel(null);
@@ -391,14 +393,6 @@ export default function MessagesPage() {
           </div>
         )}
       </div>
-
-      {selectedCommunityId !== null && selectedChannel?.type === 'community' && (
-        <MemberSidebar 
-          members={members}
-          isAdmin={isAdmin}
-          onAddMember={() => setIsAddingMember(true)}
-        />
-      )}
 
       {/* ── MODALS ── */}
       {isCreatingCommunity && (
