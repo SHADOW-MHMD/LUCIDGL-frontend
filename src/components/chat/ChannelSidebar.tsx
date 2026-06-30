@@ -20,8 +20,7 @@ interface ChannelSidebarProps {
   onRenameSubmit: (ch: Channel) => void;
   onRenameCancel: () => void;
   onChannelCtx: (e: React.MouseEvent, ch: Channel) => void;
-  hoveredChannelId: string | null;
-  onHoverChannel: (id: string | null) => void;
+
   userProfile?: Profile;
 }
 
@@ -29,7 +28,7 @@ export function ChannelSidebar({
   channels, selectedChannel, selectedCommunityId, selectedCommunity, isAdmin, userId,
   onSelectChannel, onOpenSettings, onOpenLeaderboard, onCreateDM, onCreateChannel,
   renamingChannelId, renameValue, onRenameChange, onRenameSubmit, onRenameCancel,
-  onChannelCtx, hoveredChannelId, onHoverChannel, userProfile
+  onChannelCtx, userProfile
 }: ChannelSidebarProps) {
   return (
     <div className="w-60 shrink-0 bg-white/[0.03] backdrop-blur-lg flex flex-col border-r border-white/[0.1] shadow-2xl z-10 transition-all duration-300 ease-in-out">
@@ -83,8 +82,6 @@ export function ChannelSidebar({
             <div
               key={ch.id}
               className="relative group/ch px-2"
-              onMouseEnter={() => onHoverChannel(ch.id)}
-              onMouseLeave={() => onHoverChannel(null)}
               onContextMenu={e => onChannelCtx(e, ch)}
             >
               {renamingChannelId === ch.id ? (
@@ -123,10 +120,10 @@ export function ChannelSidebar({
                       ? (ch.channel_members?.find(m => m.profiles?.id !== userId)?.profiles?.username || 'DM')
                       : ch.name}
                   </span>
-                  {isAdmin && ch.type === 'community' && hoveredChannelId === ch.id && (
+                  {isAdmin && ch.type === 'community' && (
                     <button
                       onClick={e => { e.stopPropagation(); onChannelCtx(e, ch); }}
-                      className="p-0.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                      className="opacity-0 group-hover/ch:opacity-100 p-0.5 rounded text-white/40 hover:text-white hover:bg-white/10 transition-opacity shrink-0"
                     >
                       <MoreVertical className="w-3.5 h-3.5" />
                     </button>

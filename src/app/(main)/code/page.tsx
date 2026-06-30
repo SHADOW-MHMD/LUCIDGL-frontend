@@ -140,9 +140,10 @@ export default function CodeHubPage() {
               <Upload size={18} className="text-indigo-400" /> Upload a File
             </h2>
             <form onSubmit={handleUpload} className="space-y-4">
-              <div
-                className="group border-2 border-dashed border-white/[0.10] rounded-xl p-6 text-center hover:border-indigo-500/40 transition-colors cursor-pointer"
+              <motion.div
+                className="group w-full min-h-[400px] rounded-3xl border-2 border-dashed border-white/[0.08] bg-white/[0.02] flex flex-col items-center justify-center relative overflow-hidden transition-colors cursor-pointer hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]"
                 onClick={() => fileInputRef.current?.click()}
+                whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.04)" }}
               >
                 <input
                   ref={fileInputRef}
@@ -170,14 +171,14 @@ export default function CodeHubPage() {
                     <p className="text-white/30 text-xs mt-1">Max size: 20 MB</p>
                   </>
                 )}
-              </div>
+              </motion.div>
 
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Caption (optional)..."
                 rows={2}
-                className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-indigo-500/50 resize-none transition-colors"
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none transition-colors"
               />
 
               <AnimatePresence>

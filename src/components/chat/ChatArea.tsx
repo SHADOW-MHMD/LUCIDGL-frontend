@@ -23,7 +23,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
-  const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; msgId: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -312,8 +312,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
               <div
                 key={msg.id}
                 className={`group relative flex gap-4 px-4 py-0.5 rounded-md hover:bg-white/5 transition-colors ${isConsecutive ? 'mt-0' : 'mt-4'}`}
-                onMouseEnter={() => setHoveredMsgId(msg.id)}
-                onMouseLeave={() => setHoveredMsgId(null)}
                 onContextMenu={e => handleMsgContextMenu(e, msg)}
               >
                 {!isConsecutive ? (
@@ -378,8 +376,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                 </div>
 
                 {/* Hover actions */}
-                {hoveredMsgId === msg.id && (
-                  <div className="absolute right-4 -top-4 flex items-center gap-0.5 bg-[#2b2d31]/90 backdrop-blur-md border border-white/10 rounded-md shadow-lg py-0.5 px-1 z-10">
+                <div className="absolute right-4 -top-4 hidden group-hover:flex items-center gap-0.5 bg-[#2b2d31]/90 backdrop-blur-md border border-white/10 rounded-md shadow-lg py-0.5 px-1 z-10">
                     <button
                       onClick={() => setShowEmojiPicker(msg.id)}
                       className="p-1.5 rounded text-white/50 hover:text-yellow-400 hover:bg-white/10 transition-colors"
@@ -406,7 +403,6 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                       </button>
                     )}
                   </div>
-                )}
                 
                 {/* Emoji Picker */}
                 {showEmojiPicker === msg.id && (
@@ -446,7 +442,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, onChanne
                 : 'Several people are typing...'}
           </div>
         )}
-        <form onSubmit={handleSend} className="relative flex items-center bg-white/[0.03] border border-white/[0.1] rounded-2xl shadow-inner focus-within:ring-1 focus-within:ring-white/20 transition-all duration-300">
+        <form onSubmit={handleSend} className="relative flex items-center bg-white/[0.05] border border-white/[0.1] rounded-2xl shadow-inner focus-within:ring-1 focus-within:ring-violet-500/50 transition-all duration-300">
           <textarea
             value={text}
             onChange={handleTextChange}

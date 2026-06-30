@@ -34,6 +34,8 @@ export default function MessagesPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userProfile, setUserProfile] = useState<Profile | undefined>(undefined);
 
+  const [showCommunitiesList, setShowCommunitiesList] = useState(false);
+
   // Modal state
   const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
   const [isCreatingDM, setIsCreatingDM] = useState(false);
@@ -48,10 +50,26 @@ export default function MessagesPage() {
 
   // Context menus
   const [channelCtx, setChannelCtx] = useState<{ x: number; y: number; channel: Channel } | null>(null);
-  const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
+
 
   const isAdmin = currentRole === 'owner' || currentRole === 'admin';
   const selectedCommunity = communities.find(c => c.id === selectedCommunityId);
+
+  useEffect(() => {
+    const savedView = localStorage.getItem('messages_view');
+    if (savedView === 'communities') setShowCommunitiesList(true);
+  }, []);
+
+  const handleSetView = (view: 'communities' | 'dms') => {
+    if (view === 'communities') {
+      setShowCommunitiesList(true);
+      localStorage.setItem('messages_view', 'communities');
+    } else {
+      setShowCommunitiesList(false);
+      setSelectedCommunityId(null);
+      localStorage.setItem('messages_view', 'dms');
+    }
+  };
 
   // Fetch communities & user profile
   useEffect(() => {
@@ -85,7 +103,7 @@ export default function MessagesPage() {
       }
     };
     loadData();
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   // Fetch channels + members when community changes
   useEffect(() => {
@@ -130,8 +148,6 @@ export default function MessagesPage() {
     if (!window.confirm(`Delete #${ch.name}?`)) return;
     const { error } = await supabase.from('channels').delete().eq('id', ch.id).select();
     if (error || !error) {
-      // Actually we removed the inline alert from here previously as this handles the context menu action
-      // We should check error, but since the RLS fix is applied in the backend, it will work.
       if (error) {
         console.error("Failed to delete channel:", error);
         alert(`Failed to delete channel: ${error.message}`);
@@ -165,33 +181,78 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-transparent font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0a0a0f] font-sans">
       
+      {/* Left Sidebar Swapping Logic */}
+      <AnimatePresence mode="wait">
+        {showCommunitiesList ? (
+          <motion.div
+            key="communities-list"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -20, opacity: 0 }}
+            className="w-72 bg-[#0a0a0f] border-r border-white/[0.08] flex flex-col h-full z-10 shrink-0"
+          >
+            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between mt-12 md:mt-0">
+              <h2 className="text-white font-bold">Communities</h2>
+              <button onClick={() => setIsCreatingCommunity(true)} className="text-cyan-400 hover:text-cyan-300 transition-colors">
+                <PlusSquare size={20}/>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+               {communities.length === 0 && <p className="text-white/40 text-sm text-center mt-4">No communities yet.</p>}
+               {communities.map(c => (
+                  <div key={c.id} onClick={() => { setSelectedCommunityId(c.id); setShowCommunitiesList(false); }} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.04] cursor-pointer transition-colors">
+                      {c.logo_url ? <img src={c.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center text-white font-bold">{c.name.charAt(0).toUpperCase()}</div>}
+                      <span className="text-white font-medium">{c.name}</span>
+                  </div>
+               ))}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="channel-sidebar"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -20, opacity: 0 }}
+            className="h-full flex flex-col z-10 shrink-0 bg-[#0a0a0f]"
+          >
+            {selectedCommunityId !== null && (
+              <button 
+                onClick={() => setShowCommunitiesList(true)}
+                className="flex items-center gap-2 p-4 text-white/60 hover:text-white hover:bg-white/[0.02] border-b border-white/[0.08] transition-colors mt-12 md:mt-0"
+              >
+                <ArrowLeft size={16} /> Back to Communities
+              </button>
+            )}
+            <div className={`flex-1 ${selectedCommunityId === null ? 'mt-12 md:mt-0' : ''}`}>
+              <ChannelSidebar 
+                channels={channels}
+                selectedChannel={selectedChannel}
+                selectedCommunityId={selectedCommunityId}
+                selectedCommunity={selectedCommunity}
+                isAdmin={isAdmin}
+                userId={user.id}
+                onSelectChannel={setSelectedChannel}
+                onOpenSettings={() => setServerSettings(true)}
+                onOpenLeaderboard={() => setShowLeaderboard(true)}
+                onCreateDM={() => setIsCreatingDM(true)}
+                onCreateChannel={() => setIsCreatingChannel(true)}
+                renamingChannelId={renamingChannelId}
+                renameValue={renameValue}
+                onRenameChange={setRenameValue}
+                onRenameSubmit={handleRenameChannel}
+                onRenameCancel={() => setRenamingChannelId(null)}
+                onChannelCtx={handleChannelCtx}
+                userProfile={userProfile}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <ChannelSidebar 
-        channels={channels}
-        selectedChannel={selectedChannel}
-        selectedCommunityId={selectedCommunityId}
-        selectedCommunity={selectedCommunity}
-        isAdmin={isAdmin}
-        userId={user.id}
-        onSelectChannel={setSelectedChannel}
-        onOpenSettings={() => setServerSettings(true)}
-        onOpenLeaderboard={() => setShowLeaderboard(true)}
-        onCreateDM={() => setIsCreatingDM(true)}
-        onCreateChannel={() => setIsCreatingChannel(true)}
-        renamingChannelId={renamingChannelId}
-        renameValue={renameValue}
-        onRenameChange={setRenameValue}
-        onRenameSubmit={handleRenameChannel}
-        onRenameCancel={() => setRenamingChannelId(null)}
-        onChannelCtx={handleChannelCtx}
-        hoveredChannelId={hoveredChannelId}
-        onHoverChannel={setHoveredChannelId}
-        userProfile={userProfile}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Floating Glass Chat Pane */}
+      <div className="flex-1 m-4 md:m-6 lg:m-8 rounded-3xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md shadow-2xl flex flex-col overflow-hidden min-w-0">
         {selectedChannel ? (
           <ChatArea
             channelId={selectedChannel.id}
@@ -287,65 +348,29 @@ export default function MessagesPage() {
       )}
 
       {/* FLOATING BOTTOM DOCK */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-[#0d0d1a]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl z-50">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl z-50">
         <motion.button
-          onClick={() => router.push('/reels')}
+          onClick={() => handleSetView('communities')}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors hover:bg-white/[0.06]"
-          title="Back to Reels"
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${showCommunitiesList || selectedCommunityId !== null ? 'bg-cyan-500/20 shadow-lg shadow-cyan-500/20 text-cyan-400' : 'hover:bg-white/[0.06] text-white/70 hover:text-white'}`}
+          title="Communities"
         >
-          <ArrowLeft size={24} className="text-white" />
+          <Compass size={24} />
         </motion.button>
         
         <div className="w-px h-8 bg-white/[0.08] mx-1" />
 
-        {/* DMs / Home */}
         <motion.button
-          onClick={() => setSelectedCommunityId(null)}
+          onClick={() => handleSetView('dms')}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${selectedCommunityId === null ? 'bg-indigo-600/20 shadow-lg shadow-indigo-500/20' : 'hover:bg-white/[0.06]'}`}
+          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${!showCommunitiesList && selectedCommunityId === null ? 'bg-violet-500/20 shadow-lg shadow-violet-500/20 text-violet-400' : 'hover:bg-white/[0.06] text-white/70 hover:text-white'}`}
           title="Direct Messages"
         >
-          <MessageSquare size={24} className="text-white" />
-        </motion.button>
-        
-        <div className="w-px h-8 bg-white/[0.08] mx-1" />
-
-        {/* Communities */}
-        {communities.map(c => (
-          <motion.button
-            key={c.id}
-            onClick={() => setSelectedCommunityId(c.id)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors overflow-hidden ${selectedCommunityId === c.id ? 'ring-2 ring-cyan-400/40 bg-indigo-600/15 shadow-lg shadow-cyan-500/10' : 'bg-white/[0.04] hover:bg-white/[0.07]'}`}
-            title={c.name}
-          >
-            {c.logo_url ? (
-              <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="text-white font-bold text-lg">{c.name.charAt(0).toUpperCase()}</div>
-            )}
-          </motion.button>
-        ))}
-        
-        <div className="w-px h-8 bg-white/[0.08] mx-1" />
-        
-        {/* Add Community */}
-        <motion.button
-          onClick={() => setIsCreatingCommunity(true)}
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors hover:bg-white/[0.06] text-cyan-400"
-          title="Create Community"
-        >
-          <PlusSquare size={24} />
+          <MessageSquare size={24} />
         </motion.button>
       </div>
     </div>

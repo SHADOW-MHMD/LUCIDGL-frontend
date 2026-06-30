@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldAlert, Upload, Loader2, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -113,10 +114,11 @@ export default function FacesUploadPage() {
             </div>
           )}
 
-          <div
+          <motion.div
             onClick={() => fileInputRef.current?.click()}
-            className={`relative flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${
-              file ? "border-cyan-500/50 bg-cyan-500/5" : "border-white/20 bg-white/5 hover:border-cyan-400/50 hover:bg-white/10"
+            whileHover={{ scale: 1.01, backgroundColor: "rgba(255, 255, 255, 0.04)" }}
+            className={`relative flex flex-col items-center justify-center w-full min-h-[400px] rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
+              file ? "border-cyan-500/50 bg-cyan-500/5" : "border-white/[0.08] bg-white/[0.02] hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]"
             }`}
           >
             <input
@@ -146,7 +148,7 @@ export default function FacesUploadPage() {
                 <p className="text-white/50 text-sm">MP4 or WebM (max 20MB)</p>
               </div>
             )}
-          </div>
+          </motion.div>
 
           <div>
             <label className="block text-white/80 text-sm font-medium mb-2">Caption</label>
@@ -156,7 +158,7 @@ export default function FacesUploadPage() {
               maxLength={150}
               placeholder="What's this about?"
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all resize-none"
+              className="w-full bg-white/[0.03] border border-white/[0.08] text-white rounded-xl px-4 py-3 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all resize-none"
             />
             <div className="text-right mt-1 text-xs text-white/40">
               {caption.length} / 150
