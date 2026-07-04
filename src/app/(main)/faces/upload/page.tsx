@@ -161,7 +161,7 @@ export default function FacesUploadPage() {
                 <p className="text-white font-medium mb-1">
                   <span className="text-violet-400">Choose a file</span> or drag & drop it here
                 </p>
-                <p className="text-gray-400 text-sm">JPEG, PNG, and MP4 formats, up to 100MB</p>
+                <p className="text-gray-400 text-sm">JPEG, PNG, and MP4 formats, up to 20MB</p>
               </div>
             )}
           </motion.div>
