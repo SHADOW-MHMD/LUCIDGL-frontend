@@ -9,6 +9,8 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from "framer-motion";
 import { env } from "@/lib/env";
+import { useGamification } from "@/hooks/useGamification";
+import { Flame } from "lucide-react";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -27,6 +29,7 @@ const userLevelCache: Record<string, any> = {};
 
 export function ChatArea({ channelId, channelName, type, communityRole, avatarUrl, selectedCommunity, members = [], onChannelDeleted }: ChatAreaProps) {
   const { user } = useAuth();
+  const { getGamificationData } = useGamification();
   const [messages, setMessages] = useState<SupabaseMessage[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -464,6 +467,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
               reactionsArray = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
             }
 
+            const pData = msg.profiles as any;
+            const gData = pData ? getGamificationData(pData.id, pData.current_level, pData.badge_tier, pData.streak_count) : null;
+
             return (
               <div
                 key={msg.id}
@@ -471,7 +477,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
                 onContextMenu={e => handleMsgContextMenu(e, msg)}
               >
                 {!isConsecutive && !isMe ? (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shrink-0 overflow-hidden mt-auto mb-1">
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shrink-0 overflow-hidden mt-auto mb-1 ${gData?.glowClass ? `border-2 ${gData.glowClass}` : ''}`}>
                     {msg.profiles?.avatar_url && <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
                   </div>
                 ) : !isConsecutive && isMe ? (
@@ -483,8 +489,11 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
                 <div className={`relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   {!isConsecutive && !isMe && type === 'community' && (
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="font-medium text-violet-400 text-[13px]">{msg.profiles?.username || 'Unknown'}</span>
-                      <LevelBadge level={(msg.profiles as any)?.current_level || 0} />
+                      <span className="font-medium text-violet-400 text-[13px] flex items-center gap-1">
+                        {msg.profiles?.username || 'Unknown'}
+                        {gData?.showFlame && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/20" />}
+                      </span>
+                      <LevelBadge level={(msg.profiles as any)?.current_level || 0} badgeTier={gData?.dynamicBadge} />
                     </div>
                   )}
                   

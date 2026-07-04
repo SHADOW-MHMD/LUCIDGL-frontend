@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Play, MessageSquare, LogIn, LogOut, Compass, UserCircle, PlusSquare, Code2, BarChart2, Settings } from "lucide-react";
+import { Home, Play, MessageSquare, LogIn, LogOut, Compass, UserCircle, PlusSquare, Code2, BarChart2, Settings, Trophy } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,7 @@ export default function Navigation() {
     { href: "/reels", label: "Reels", icon: Play },
     { href: "/messages", label: "DMs", icon: MessageSquare },
     { href: "/discover", label: "Discover", icon: Compass },
+    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
     { href: "/faces/upload", label: "Upload", icon: PlusSquare },
     { href: "/code", label: "Code Hub", icon: Code2 },
     { href: "/analytics", label: "Analytics", icon: BarChart2 },

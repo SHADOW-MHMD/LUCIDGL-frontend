@@ -5,8 +5,12 @@ import { supabase } from "@/lib/supabase";
 import { Trophy, Code2, Image as ImageIcon, Download, Heart, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { env } from "@/lib/env";
+import { useGamification } from "@/hooks/useGamification";
+import { LevelBadge } from "@/components/ui/LevelBadge";
+import { Flame } from "lucide-react";
 
 export default function DiscoverPage() {
+  const { getGamificationData } = useGamification();
   const [data, setData] = useState<{
     top_users: any[];
     trending_code: any[];
@@ -87,7 +91,9 @@ export default function DiscoverPage() {
           <h2 className="text-3xl font-bold text-white/90">Apex Legends</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {data?.top_users?.slice(0, 3).map((user, i) => (
+          {data?.top_users?.slice(0, 3).map((user, i) => {
+            const gData = getGamificationData(user.id, user.current_level || 0, user.badge_tier || "NOVICE", user.current_streak || 0);
+            return (
             <motion.div
               key={user.id || i}
               initial={{ opacity: 0, y: 20 }}
@@ -95,18 +101,19 @@ export default function DiscoverPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.08 }}
               whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-              className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 shadow-xl hover:bg-white/[0.04] hover:border-indigo-500/20 transition-colors"
+              className={`bg-white/[0.03] backdrop-blur-sm border rounded-2xl p-6 shadow-xl hover:bg-white/[0.04] hover:border-indigo-500/20 transition-colors ${gData.glowClass ? `border-2 ${gData.glowClass}` : 'border-white/[0.08]'}`}
             >
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                  #{i + 1}
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0 overflow-hidden">
+                  {user.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : `#${i + 1}`}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{user.username || 'User'}</h3>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-1.5">
+                    {user.username || 'User'}
+                    {gData.showFlame && <Flame className="w-4 h-4 text-orange-500 fill-orange-500/20" />}
+                  </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 text-xs font-semibold">
-                      Lvl {user.level || 1}
-                    </span>
+                    <LevelBadge level={user.current_level || 1} badgeTier={gData.dynamicBadge} />
                     {user.nitro_tier && (
                       <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-xs font-semibold flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Tier {user.nitro_tier}
@@ -117,10 +124,10 @@ export default function DiscoverPage() {
               </div>
               <div className="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl p-3">
                 <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Experience</span>
-                <span className="text-white font-mono font-bold text-lg">{user.xp || 0} XP</span>
+                <span className="text-white font-mono font-bold text-lg">{user.total_xp || 0} XP</span>
               </div>
             </motion.div>
-          ))}
+          )})}
           {(!data?.top_users || data.top_users.length === 0) && (
             <div className="col-span-1 md:col-span-3 text-center py-10 text-white/30">
               No legends found yet.
