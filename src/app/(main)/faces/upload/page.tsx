@@ -6,6 +6,7 @@ import { ShieldAlert, Upload, Loader2, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { env } from "@/lib/env";
 
 export default function FacesUploadPage() {
   const { user, loading: authLoading } = useAuth();
@@ -55,7 +56,7 @@ export default function FacesUploadPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+      const apiUrl = env.apiUrl;
       
       const formData = new FormData();
       formData.append("video", file);

@@ -6,8 +6,9 @@ import { supabase } from "@/lib/supabase";
 import { CodeFile } from "@/types";
 import { Upload, Download, FileArchive, Smartphone, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { env } from "@/lib/env";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
+const apiUrl = env.apiUrl;
 
 async function getToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();

@@ -8,6 +8,7 @@ import { LevelBadge } from "@/components/ui/LevelBadge";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from "framer-motion";
+import { env } from "@/lib/env";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -70,7 +71,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
         const userIds = [...new Set(msgs.map(m => m.user_id))];
         if (userIds.length > 0 && user) {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+            const res = await fetch(`${env.apiUrl}/api/gamification/levels`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
             if (userLevelCache[payload.new.user_id]) {
               finalProfile = { ...finalProfile, ...userLevelCache[payload.new.user_id] };
             } else {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+              const res = await fetch(`${env.apiUrl}/api/gamification/levels`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(user as any).access_token || ''}` },
                 body: JSON.stringify({ userIds: [payload.new.user_id] })
@@ -247,7 +248,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
       setText(t);
       alert("Failed to send message.");
     } else {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/record-message`, {
+      fetch(`${env.apiUrl}/api/gamification/record-message`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${(user as any).access_token || ''}`

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Trophy, Code2, Image as ImageIcon, Download, Heart, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { env } from "@/lib/env";
 
 export default function DiscoverPage() {
   const [data, setData] = useState<{
@@ -18,7 +19,7 @@ export default function DiscoverPage() {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
+        const apiUrl = env.apiUrl;
         
         const res = await fetch(`${apiUrl}/api/discover`, {
           headers: {

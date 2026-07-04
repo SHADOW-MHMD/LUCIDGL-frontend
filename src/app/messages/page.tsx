@@ -16,6 +16,7 @@ import { ContextMenu } from "@/components/ui/ContextMenu";
 import { LeaderboardModal } from "@/components/chat/LeaderboardModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChannelSidebar } from "@/components/chat/ChannelSidebar";
+import { env } from "@/lib/env";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -80,7 +81,7 @@ export default function MessagesPage() {
       if (prof) {
         let profileData = prof as Profile;
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/gamification/levels`, {
+          const res = await fetch(`${env.apiUrl}/api/gamification/levels`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -181,8 +182,18 @@ export default function MessagesPage() {
       {/* LEFT SIDEBAR */}
       <div className="w-[350px] h-full bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col shrink-0 shadow-2xl z-20">
         
+        {/* Top Header / Back */}
+        <div className="px-4 pt-6 pb-2">
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-[13px] font-medium w-fit"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+        </div>
+
         {/* Search Header */}
-        <div className="p-4 pt-6">
+        <div className="px-4 pb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input 
@@ -228,7 +239,14 @@ export default function MessagesPage() {
                 exit={{ opacity: 0 }}
                 className="p-2 space-y-1"
               >
-                {filteredCommunities.length === 0 && <p className="text-white/40 text-sm text-center mt-6">No communities found.</p>}
+                {filteredCommunities.length === 0 && (
+                  <div className="flex flex-col items-center justify-center p-8 mt-4 mx-2 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md">
+                    <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 3, repeat: Infinity }}>
+                      <Compass className="w-10 h-10 text-white/20 mb-3" />
+                    </motion.div>
+                    <p className="text-white/60 text-[13px] font-medium text-center">No communities joined yet.</p>
+                  </div>
+                )}
                 {filteredCommunities.map(c => (
                   <div 
                     key={c.id} 
@@ -245,7 +263,6 @@ export default function MessagesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-0.5">
                         <span className="font-semibold text-[15px] truncate text-white/90 group-hover:text-white">{c.name}</span>
-                        <span className="text-[11px] text-white/30 shrink-0">12:00</span>
                       </div>
                       <p className="text-[13px] text-white/50 truncate group-hover:text-white/70">Click to view channels</p>
                     </div>
@@ -309,7 +326,12 @@ export default function MessagesPage() {
               >
                 <div className="flex-1 overflow-y-auto space-y-1">
                   {channels.filter(c => c.type === 'dm').length === 0 && (
-                     <p className="text-white/40 text-sm text-center mt-6">No direct messages yet.</p>
+                    <div className="flex flex-col items-center justify-center p-8 mt-4 mx-2 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md">
+                      <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 3, repeat: Infinity }}>
+                        <MessageSquare className="w-10 h-10 text-white/20 mb-3" />
+                      </motion.div>
+                      <p className="text-white/60 text-[13px] font-medium text-center">No direct messages yet.</p>
+                    </div>
                   )}
                   {channels.filter(c => c.type === 'dm').map(ch => {
                     const otherMember = ch.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles;
@@ -333,7 +355,6 @@ export default function MessagesPage() {
                             <span className={`font-semibold text-[15px] truncate ${isActive ? 'text-violet-300' : 'text-white/90 group-hover:text-white'}`}>
                               {otherMember?.username || 'Unknown User'}
                             </span>
-                            <span className="text-[11px] text-white/30 shrink-0">12:00</span>
                           </div>
                           <p className={`text-[13px] truncate ${isActive ? 'text-violet-200/70' : 'text-white/50 group-hover:text-white/70'}`}>
                             Direct Message

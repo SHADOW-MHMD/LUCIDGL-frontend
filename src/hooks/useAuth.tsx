@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { env } from "@/lib/env";
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -29,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncUserWithBackend = useCallback(async (sessionUser: SupabaseUser, token: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
+      const apiUrl = env.apiUrl;
       
       const generatedUsername = sessionUser.user_metadata?.full_name || sessionUser.email?.split("@")[0] || "User";
       const email = sessionUser.email || "no-email@provided.com";

@@ -5,8 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Save, Loader2, User2, Link2, Monitor, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { env } from "@/lib/env";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
+const apiUrl = env.apiUrl;
 
 interface UserProfile {
   id: string;
@@ -231,7 +232,7 @@ export default function SettingsPage() {
                       type="text"
                       value={avatarUrl}
                       onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="https://example.com/avatar.png"
+                      placeholder="e.g. https://imgur.com/avatar.png"
                       className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all"
                     />
                   </div>
@@ -244,7 +245,7 @@ export default function SettingsPage() {
                     <textarea
                       value={bio}
                       onChange={(e) => setBio(e.target.value.slice(0, 160))}
-                      placeholder="Tell the community about yourself..."
+                      placeholder="e.g. I build Next.js apps and love open-source."
                       rows={3}
                       maxLength={160}
                       className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none transition-all"

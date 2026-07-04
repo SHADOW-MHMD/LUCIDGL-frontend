@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { Analytics } from "@/types";
 import { Eye, Download, ThumbsUp, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { env } from "@/lib/env";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://lucid-gl.muhammed1515mishal.workers.dev";
+const apiUrl = env.apiUrl;
 
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);

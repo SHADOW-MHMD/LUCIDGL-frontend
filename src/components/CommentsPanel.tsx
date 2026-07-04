@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Heart, Send } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Comment } from "@/types";
+import { env } from "@/lib/env";
 
 interface CommentsPanelProps {
   postId: string;
@@ -20,7 +21,7 @@ export function CommentsPanel({ postId, onClose, onCommentAdded }: CommentsPanel
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
-        const res = await fetch(`https://lucid-gl.muhammed1515mishal.workers.dev/api/feed/comments/${postId}`, {
+        const res = await fetch(`${env.apiUrl}/api/feed/comments/${postId}`, {
           headers: { Authorization: `Bearer ${session.access_token}` }
         });
         if (res.ok) {
@@ -45,7 +46,7 @@ export function CommentsPanel({ postId, onClose, onCommentAdded }: CommentsPanel
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      const res = await fetch(`https://lucid-gl.muhammed1515mishal.workers.dev/api/feed/comments`, {
+      const res = await fetch(`${env.apiUrl}/api/feed/comments`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -83,7 +84,7 @@ export function CommentsPanel({ postId, onClose, onCommentAdded }: CommentsPanel
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await fetch(`https://lucid-gl.muhammed1515mishal.workers.dev/api/feed/comments/like`, {
+      await fetch(`${env.apiUrl}/api/feed/comments/like`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { FacePost } from "@/types";
 import { CommentsPanel } from "@/components/CommentsPanel";
 import { motion } from "framer-motion";
+import { env } from "@/lib/env";
 
 export default function ReelsPage() {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export default function ReelsPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
-        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+        const apiUrl = env.apiUrl;
         const res = await fetch(`${apiUrl}/api/feed/reels`, {
           headers: {
             Authorization: `Bearer ${token}`
@@ -105,7 +106,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
   const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(reel.like_count);
   const [isLiked, setIsLiked] = useState(!!reel.is_liked);
-  const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+  const apiUrl = env.apiUrl;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -163,7 +164,7 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
-        const apiUrl = "https://lucid-gl.muhammed1515mishal.workers.dev";
+        const apiUrl = env.apiUrl;
         const response = await fetch(`${apiUrl}/api/feed/like`, {
           method: "POST",
           headers: {

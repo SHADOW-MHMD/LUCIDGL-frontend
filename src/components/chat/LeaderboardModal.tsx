@@ -3,6 +3,7 @@ import { X, Trophy, Flame } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types";
 import { LevelBadge } from "@/components/ui/LevelBadge";
+import { env } from "@/lib/env";
 
 interface LeaderboardModalProps {
   communityId: string | null;
@@ -18,7 +19,7 @@ export function LeaderboardModal({ communityId, onClose }: LeaderboardModalProps
     const fetchLeaders = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lucid-gl.muhammed1515mishal.workers.dev'}/api/users/leaderboard`);
+        const res = await fetch(`${env.apiUrl}/api/users/leaderboard`);
         const data = await res.json();
         
         let profs = data.map((d: any) => ({
