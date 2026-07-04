@@ -31,9 +31,9 @@ export function ChannelSidebar({
   onChannelCtx, userProfile
 }: ChannelSidebarProps) {
   return (
-    <div className="w-60 shrink-0 bg-white/[0.03] backdrop-blur-lg flex flex-col border-r border-white/[0.1] shadow-2xl z-10 transition-all duration-300 ease-in-out">
+    <div className="w-full h-full flex flex-col transition-all duration-300 ease-in-out">
       {/* Server name header */}
-      <div className="h-16 px-6 border-b border-white/[0.1] flex items-center justify-between shrink-0">
+      <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between shrink-0">
         <h2 className="text-white font-bold text-sm tracking-wide truncate flex-1">
           {selectedCommunityId === null ? 'Direct Messages' : selectedCommunity?.name || 'Community'}
         </h2>
@@ -99,10 +99,10 @@ export function ChannelSidebar({
               ) : (
                 <button
                   onClick={() => onSelectChannel(ch)}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 mb-1 rounded-xl text-sm transition-all duration-200 ${
                     selectedChannel?.id === ch.id
-                      ? 'bg-white/15 text-white'
-                      : 'text-white/50 hover:bg-white/5 hover:text-white/90'
+                      ? 'bg-white/20 text-white shadow-sm border border-white/10'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
                   }`}
                 >
                   {ch.type === 'community' ? (
@@ -136,7 +136,7 @@ export function ChannelSidebar({
       </div>
 
       {/* User bar at bottom */}
-      <div className="h-16 bg-white/[0.02] shrink-0 flex items-center px-4 gap-3 border-t border-white/[0.1] backdrop-blur-md">
+      <div className="h-16 bg-black/20 shrink-0 flex items-center px-4 gap-3 border-t border-white/10">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 shrink-0 overflow-hidden">
           {userProfile?.avatar_url && <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />}
         </div>

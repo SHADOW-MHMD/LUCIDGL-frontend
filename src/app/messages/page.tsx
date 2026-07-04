@@ -179,7 +179,7 @@ export default function MessagesPage() {
     <div className="h-screen w-full flex overflow-hidden bg-[#0a0a0f] text-white font-sans">
       
       {/* LEFT SIDEBAR */}
-      <div className="w-[350px] h-full bg-[#0d0d1a] border-r border-white/[0.08] flex flex-col shrink-0">
+      <div className="w-[350px] h-full bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col shrink-0 shadow-2xl z-20">
         
         {/* Search Header */}
         <div className="p-4 pt-6">
@@ -190,7 +190,7 @@ export default function MessagesPage() {
               placeholder="Search" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.08] transition-all"
+              className="w-full bg-black/20 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/30 focus:bg-black/30 transition-all shadow-inner"
             />
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function MessagesPage() {
                   <div 
                     key={c.id} 
                     onClick={() => setSelectedCommunityId(c.id)} 
-                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-colors group"
+                    className="flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl hover:bg-white/10 cursor-pointer transition-all duration-200 group border border-transparent hover:border-white/5"
                   >
                     {c.logo_url ? (
                       <img src={c.logo_url} alt="" className="w-12 h-12 rounded-full object-cover shrink-0 border border-white/[0.08]" />
@@ -276,7 +276,7 @@ export default function MessagesPage() {
                 >
                   <ArrowLeft size={16} /> Back to Folders
                 </button>
-                <div className="flex-1">
+                <div className="flex-1 overflow-hidden flex flex-col">
                   <ChannelSidebar 
                     channels={channels}
                     selectedChannel={selectedChannel}
@@ -318,7 +318,7 @@ export default function MessagesPage() {
                       <div 
                         key={ch.id} 
                         onClick={() => setSelectedChannel(ch)} 
-                        className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-colors group ${isActive ? 'bg-violet-600/20' : 'hover:bg-white/[0.05]'}`}
+                        className={`flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl cursor-pointer transition-all duration-200 group ${isActive ? 'bg-white/20 shadow-sm border border-white/10' : 'hover:bg-white/10 border border-transparent'}`}
                         onContextMenu={(e) => handleChannelCtx(e, ch)}
                       >
                         {otherMember?.avatar_url ? (

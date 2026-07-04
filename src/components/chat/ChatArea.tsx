@@ -306,9 +306,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
   const typingArray = Object.values(typingUsers);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0f] relative w-full overflow-hidden">
+    <div className="flex flex-col h-full bg-[#050505] relative w-full overflow-hidden">
       {/* Top Header */}
-      <div className="h-16 border-b border-white/[0.08] flex items-center px-6 shrink-0 z-10 bg-[#0a0a0f] justify-between">
+      <div className="h-16 border-b border-white/10 flex items-center px-6 shrink-0 z-10 bg-[#050505] justify-between">
         <div className="flex items-center gap-3">
           {type === 'dm' ? (
             avatarUrl ? (
@@ -569,7 +569,7 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
       </div>
 
       {/* Input Bar */}
-      <div className="shrink-0 bg-[#0a0a0f]">
+      <div className="shrink-0 bg-[#050505]">
         {typingArray.length > 0 && (
           <div className="px-6 py-1 text-[13px] text-violet-400 font-medium">
             {typingArray.length === 1 
