@@ -66,9 +66,12 @@ export default function ReelsPage() {
 
   return (
     <div className="flex flex-col items-center py-6">
-      <div className="w-full max-w-md flex flex-col gap-8 snap-y snap-mandatory h-[calc(100vh-120px)] overflow-y-auto pb-20 no-scrollbar">
+      <div 
+        id="reels-feed-container"
+        className="w-full max-w-md flex flex-col gap-8 snap-y snap-mandatory h-[calc(100vh-120px)] overflow-y-auto pb-20 no-scrollbar relative"
+      >
         {reels.length === 0 ? (
-          <div className="text-center text-white/40 mt-20">No media available.</div>
+          <div className="flex-1 flex items-center justify-center min-h-[400px]">No media available.</div>
         ) : (
           reels.map((reel, index) => (
             <motion.div
@@ -203,7 +206,10 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
   };
 
   return (
-    <div className="snap-center shrink-0 w-full aspect-[9/16] rounded-[2.5rem] bg-[#0d0d1a] border border-white/[0.08] overflow-hidden relative shadow-2xl flex flex-col">
+    <div 
+      className="snap-center shrink-0 w-full aspect-[9/16] rounded-[2.5rem] bg-[#0d0d1a] border border-white/[0.08] overflow-hidden relative shadow-2xl flex flex-col"
+      data-active={isVisible ? "true" : undefined}
+    >
       {/* Actual Video Container */}
       <div 
         ref={videoRef}

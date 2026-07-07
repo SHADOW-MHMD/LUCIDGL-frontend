@@ -2,19 +2,30 @@
 
 import { ReelsSidebarRobot } from "@/components/ReelsSidebarRobot";
 import { ReelsProvider, useReels } from "@/components/ReelsContext";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 function ReelsShell({ children }: { children: ReactNode }) {
   const { viewedCount } = useReels();
+  const [lucidRobots, setLucidRobots] = useState(true);
+
+  useEffect(() => {
+    const app = localStorage.getItem("settings_appearance");
+    if (app) {
+      try {
+        const parsed = JSON.parse(app);
+        if (parsed.lucidRobots !== undefined) setLucidRobots(parsed.lucidRobots);
+      } catch (e) {}
+    }
+  }, []);
 
   return (
     <div className="flex w-full min-h-screen">
       {/* Main reels content */}
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="flex-1 min-w-0" id="reels-main-feed-wrapper">{children}</div>
 
       {/* PC Sidebar — hidden on mobile, visible on lg+ */}
       <div className="hidden lg:flex flex-col items-center justify-center w-36 shrink-0 sticky top-0 h-screen">
-        <ReelsSidebarRobot viewedCount={viewedCount} />
+        <ReelsSidebarRobot viewedCount={viewedCount} disableAnimations={!lucidRobots} />
       </div>
     </div>
   );

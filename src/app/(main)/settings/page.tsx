@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const [appearanceToggles, setAppearanceToggles] = useState({
     darkMode: true,
     animations: true,
+    lucidRobots: true,
   });
   
   const [gamificationToggles, setGamificationToggles] = useState({
@@ -310,6 +311,14 @@ export default function SettingsPage() {
                       <p className="text-white/50 text-sm">Enable framer-motion micro-interactions.</p>
                     </div>
                     <GlassToggle checked={appearanceToggles.animations} onChange={() => toggleAppearance('animations')} />
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                    <div>
+                      <p className="text-white font-medium">Enable Lucid Robot Assistants</p>
+                      <p className="text-white/50 text-sm">Disables intensive canvas SVG tracking and unmounts sidebar event handlers for lower-end computer rigs.</p>
+                    </div>
+                    <GlassToggle checked={appearanceToggles.lucidRobots} onChange={() => toggleAppearance('lucidRobots')} />
                   </div>
                 </div>
               </div>

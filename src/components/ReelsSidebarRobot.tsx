@@ -1,20 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { motion, useMotionValue, useTransform, useAnimate } from "framer-motion";
+import { motion, useMotionValue, useTransform, useAnimate, useSpring } from "framer-motion";
 
 interface ReelsSidebarRobotProps {
   viewedCount: number;
   disableAnimations?: boolean;
 }
 
-/**
- * Reels PC Sidebar Robot with:
- * - Mouse-tracking 3D tilt (useTransform on mouseX/mouseY → rotateX/Y)
- * - Scroll push/pull arm mechanics (useAnimate imperative)
- * - Fatigue Engine: color + spring physics degrade after 25 reels
- * - Low-end kill switch via `disableAnimations` prop
- */
 export function ReelsSidebarRobot({ viewedCount, disableAnimations = false }: ReelsSidebarRobotProps) {
   if (disableAnimations) return null;
   return <RobotInner viewedCount={viewedCount} />;
@@ -23,85 +16,153 @@ export function ReelsSidebarRobot({ viewedCount, disableAnimations = false }: Re
 function RobotInner({ viewedCount }: { viewedCount: number }) {
   const isFatigued = viewedCount >= 25;
   const [scope, animate] = useAnimate();
-  const armRef = useRef<SVGRectElement>(null);
-  const [lastScrollDir, setLastScrollDir] = useState<"up" | "down" | null>(null);
-  // Track in-flight animation to avoid stacking concurrent pushes
-  const isAnimatingRef = useRef(false);
+  const robotRef = useRef<HTMLDivElement>(null);
 
-  // ── Motion values for mouse tracking ────────────────────────────────────
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  // ── Motion values for head/body tracking ─────────────────────────────────
+  // Initialized with fixed values to prevent hydration mismatch
+  const mouseX = useMotionValue(720);
+  const mouseY = useMotionValue(400);
 
-  // Window dimensions captured once per mount; safe in "use client"
-  const windowW = useRef(typeof window !== "undefined" ? window.innerWidth : 1440);
-  const windowH = useRef(typeof window !== "undefined" ? window.innerHeight : 800);
+  // Smooth springs for tracking
+  const smoothX = useSpring(mouseX, { stiffness: 100, damping: 20 });
+  const smoothY = useSpring(mouseY, { stiffness: 100, damping: 20 });
 
-  const rotateX = useTransform(mouseY, [0, windowH.current], [15, -15]);
-  const rotateY = useTransform(mouseX, [0, windowW.current], [-15, 15]);
-
+  // Store window dimensions statefully after mount
+  const [windowSize, setWindowSize] = useState({ w: 1440, h: 800 });
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+    setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+  }, []);
 
-  // ── Spring config: memoised so scroll useEffect dep array is stable ─────
-  // FIX: useMemo prevents a new object reference on every render,
-  // which would cause the scroll useEffect to re-subscribe unnecessarily.
+  // ── Tracking logic: look at mouse, or active reel if nearby ─────────────
+  useEffect(() => {
+    let cachedReelX = windowSize.w / 2;
+    let cachedReelY = windowSize.h / 2;
+    let hasReel = false;
+
+    const updateCachedReel = () => {
+      const activeReel = document.querySelector('[data-active="true"]');
+      if (activeReel) {
+        const rect = activeReel.getBoundingClientRect();
+        cachedReelX = rect.left + rect.width / 2;
+        cachedReelY = rect.top + rect.height / 2;
+        hasReel = true;
+      } else {
+        hasReel = false;
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      let targetX = e.clientX;
+      let targetY = e.clientY;
+
+      if (hasReel) {
+        targetX = cachedReelX * 0.8 + e.clientX * 0.2;
+        targetY = cachedReelY * 0.8 + e.clientY * 0.2;
+      }
+
+      mouseX.set(targetX);
+      mouseY.set(targetY);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    
+    updateCachedReel();
+    const interval = setInterval(updateCachedReel, 1000);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      clearInterval(interval);
+    };
+  }, [mouseX, mouseY, windowSize]);
+
+  // Map position to rotation limits
+  const rotateX = useTransform(smoothY, [0, windowSize.h], [25, -25]);
+  const rotateY = useTransform(smoothX, [0, windowSize.w], [-30, 30]);
+  
+  // Head slightly exaggerated rotation
+  const headRotateX = useTransform(smoothY, [0, windowSize.h], [35, -35]);
+  const headRotateY = useTransform(smoothX, [0, windowSize.w], [-45, 45]);
+
+  // ── Spring config: snappy vs fatigued ───────────────────────────────────
   const springConfig = useMemo(
     () =>
       isFatigued
-        ? { stiffness: 40, damping: 30 }   // sluggish, heavy
+        ? { stiffness: 30, damping: 45 }   // sluggish, heavy, 0.3x standard velocity
         : { stiffness: 250, damping: 20 }, // snappy, robotic
     [isFatigued]
   );
 
-  // Keep a ref so the scroll handler always reads the latest config
-  // without needing to be in the dep array.
   const springConfigRef = useRef(springConfig);
   useEffect(() => { springConfigRef.current = springConfig; }, [springConfig]);
   const isFatiguedRef = useRef(isFatigued);
   useEffect(() => { isFatiguedRef.current = isFatigued; }, [isFatigued]);
 
-  // ── Scroll / key press mechanics ────────────────────────────────────────
+  // ── Animation states ────────────────────────────────────────────────────
+  const isAnimatingRef = useRef(false);
+
+  // ── Scroll / key press push mechanics ───────────────────────────────────
   useEffect(() => {
     const triggerPush = async (dir: "up" | "down") => {
-      if (!armRef.current || isAnimatingRef.current) return;
+      if (isAnimatingRef.current || !scope.current) return;
       isAnimatingRef.current = true;
-      setLastScrollDir(dir);
-      const yOffset = dir === "down" ? 18 : -18;
+      
       const cfg = springConfigRef.current;
       const fatigued = isFatiguedRef.current;
 
       try {
+        // Multi-phase keyframe sequence for the arms!
+        // We use motion.div absolute arms below, so we animate them using standard selectors
+        const leftArm = scope.current.querySelector('.robot-left-arm');
+        const rightArm = scope.current.querySelector('.robot-right-arm');
+        const body = scope.current.querySelector('.robot-body-wrapper');
+
+        if (!leftArm || !rightArm || !body) return;
+
         if (fatigued) {
-          await animate(
-            armRef.current,
-            { y: yOffset, scaleY: 1.4, x: [-3, 3, -2, 2, 0] },
-            { type: "spring", ...cfg }
-          );
+          // Fatigued: Struggle sequence
+          // 1. Extend arms slowly with jitter
+          await animate([
+            [leftArm, { x: [-10, -50, -40, -60], y: dir === "down" ? 40 : -40, scaleX: 3, rotate: dir === "down" ? 20 : -20 }, { duration: 0.6 }],
+            [rightArm, { x: [-10, -50, -40, -60], y: dir === "down" ? 40 : -40, scaleX: 3, rotate: dir === "down" ? 20 : -20 }, { duration: 0.6, at: "<" }],
+            [body, { x: [-1, 2, -2, 1, 0, -2, 2, 0], y: dir === "down" ? 10 : -10, rotateZ: [-2, 2, -1, 1, 0] }, { duration: 0.8, at: "<" }]
+          ]);
+          
+          // 2. Weak push back
+          await animate([
+            [leftArm, { x: 0, y: 0, scaleX: 1, rotate: 0 }, { type: "spring", ...cfg }],
+            [rightArm, { x: 0, y: 0, scaleX: 1, rotate: 0 }, { type: "spring", ...cfg }],
+            [body, { x: 0, y: 0, rotateZ: fatigued ? 10 : 0 }, { type: "spring", ...cfg }]
+          ]);
         } else {
-          await animate(
-            armRef.current,
-            { y: yOffset, scaleY: 1.4 },
-            { type: "spring", ...cfg }
-          );
+          // Active: Snappy powerful push
+          // 1. Anchor hands beneath bottom boundary (extend left and down/up)
+          await animate([
+            [leftArm, { x: -80, y: dir === "down" ? 60 : -60, scaleX: 4, rotate: dir === "down" ? 15 : -15 }, { type: "spring", stiffness: 400, damping: 25 }],
+            [rightArm, { x: -60, y: dir === "down" ? 50 : -50, scaleX: 3, rotate: dir === "down" ? 10 : -10 }, { type: "spring", stiffness: 400, damping: 25, at: "<" }],
+          ]);
+
+          // 2. Upward/Downward mechanical lifting motion
+          await animate([
+            [leftArm, { y: dir === "down" ? -60 : 60 }, { type: "spring", stiffness: 500, damping: 30 }],
+            [rightArm, { y: dir === "down" ? -50 : 50 }, { type: "spring", stiffness: 500, damping: 30, at: "<" }],
+            [body, { y: dir === "down" ? -15 : 15 }, { type: "spring", stiffness: 400, damping: 20, at: "<" }]
+          ]);
+
+          // 3. Snap back to origin
+          await animate([
+            [leftArm, { x: 0, y: 0, scaleX: 1, rotate: 0 }, { type: "spring", ...cfg }],
+            [rightArm, { x: 0, y: 0, scaleX: 1, rotate: 0 }, { type: "spring", ...cfg }],
+            [body, { y: 0 }, { type: "spring", ...cfg }]
+          ]);
         }
-        await animate(
-          armRef.current,
-          { y: 0, scaleY: 1, x: 0 },
-          { type: "spring", stiffness: 300, damping: 25 }
-        );
       } finally {
         isAnimatingRef.current = false;
       }
     };
 
     const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) < 20) return;
+      // Small debounce to prevent firing constantly
+      if (Math.abs(e.deltaY) < 30) return;
       triggerPush(e.deltaY > 0 ? "down" : "up");
     };
 
@@ -116,173 +177,164 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("keydown", handleKeyDown);
     };
-    // Stable dep array: no springConfig object, no isFatigued — both read via refs
   }, [animate]);
 
-  // ── Colors ───────────────────────────────────────────────────────────────
-  const strokeColor = isFatigued ? "#ff4500" : "#00f3ff";
-  const glowFilter = isFatigued
-    ? "drop-shadow(0 0 10px #ff450060)"
-    : "drop-shadow(0 0 12px #00f3ff50)";
+  // ── Active Jump Behavior (Hover) ────────────────────────────────────────
+  const triggerJump = async () => {
+    if (isFatiguedRef.current || isAnimatingRef.current || !scope.current) return;
+    isAnimatingRef.current = true;
+    try {
+      const body = scope.current.querySelector('.robot-body-wrapper');
+      if (body) {
+        // Vertical jumping animation with squash-and-stretch
+        await animate(body, { y: [0, -25, 0], scaleY: [1, 0.7, 1.2, 1], scaleX: [1, 1.2, 0.8, 1] }, { duration: 0.5, ease: "easeInOut" });
+      }
+    } finally {
+      isAnimatingRef.current = false;
+    }
+  };
 
-  // ── Fatigue indicator label ──────────────────────────────────────────────
-  const fatigueLabel =
-    viewedCount >= 25 ? "EXHAUSTED" :
-    viewedCount >= 15 ? "TIRED" :
-    viewedCount >= 8  ? "ACTIVE" : "READY";
+  // ── Colors & Styles ──────────────────────────────────────────────────────
+  const primaryColor = isFatigued ? "rgba(255, 69, 0, 1)" : "rgba(0, 243, 255, 1)";
+  const secondaryColor = isFatigued ? "rgba(255, 165, 0, 0.5)" : "rgba(0, 243, 255, 0.2)";
+  const glowShadow = isFatigued
+    ? "drop-shadow(0 0 15px rgba(255, 69, 0, 0.6)) drop-shadow(0 0 5px rgba(255, 165, 0, 0.8))"
+    : "drop-shadow(0 0 15px rgba(0, 243, 255, 0.6)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8))";
+
+  // Slumped orientation angle when fatigued
+  const bodySlump = isFatigued ? 10 : 0;
 
   return (
-    <div ref={scope} className="flex flex-col items-center gap-3 select-none">
-      {/* Robot SVG with 3D tilt */}
-      <motion.svg
-        viewBox="0 0 100 140"
-        width="100"
-        height="140"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{
-          filter: glowFilter,
-          rotateX,
-          rotateY,
-          perspective: 600,
-          transformStyle: "preserve-3d",
-        }}
+    <div 
+      ref={scope} 
+      className="flex flex-col items-center justify-center gap-6 select-none relative w-full h-full"
+      onMouseEnter={triggerJump}
+    >
+      <motion.div 
+        ref={robotRef}
+        className="robot-body-wrapper relative w-32 h-48 flex flex-col items-center justify-center z-10"
+        style={{ perspective: 1000 }}
+        animate={{ rotateZ: bodySlump }}
+        transition={{ type: "spring", stiffness: 60, damping: 20 }}
       >
-        {/* Antenna */}
-        <motion.line
-          x1="50" y1="12" x2="50" y2="24"
-          stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round"
-          animate={{ stroke: strokeColor }}
-          transition={{ duration: 1.5 }}
-        />
-        <motion.circle
-          cx="50" cy="9" r="4"
-          fill={strokeColor}
-          animate={{
-            fill: strokeColor,
-            r: [4, 5.5, 4],
-          }}
-          transition={{ r: { repeat: Infinity, duration: isFatigued ? 3 : 1.2, ease: "easeInOut" } }}
-        />
-
-        {/* Head */}
-        <motion.rect
-          x="22" y="24" width="56" height="44" rx="12"
-          stroke={strokeColor} strokeWidth="2.5" fill="rgba(0,0,0,0.75)"
-          animate={{ stroke: strokeColor }}
-          transition={{ duration: 1.5 }}
-        />
-
-        {/* Eyes — half-closed when fatigued */}
-        <motion.circle
-          cx="33" cy="44" r="5"
-          fill={strokeColor}
-          animate={{
-            fill: strokeColor,
-            scaleY: isFatigued ? 0.4 : 1,
-            opacity: isFatigued ? [0.5, 0.8, 0.5] : [0.7, 1, 0.7],
-          }}
-          transition={{
-            scaleY: { type: "spring", ...springConfig },
-            opacity: { repeat: Infinity, duration: isFatigued ? 4 : 2.5, ease: "easeInOut" },
-            fill: { duration: 1.5 },
-          }}
-        />
-        <motion.circle
-          cx="67" cy="44" r="5"
-          fill={strokeColor}
-          animate={{
-            fill: strokeColor,
-            scaleY: isFatigued ? 0.4 : 1,
-            opacity: isFatigued ? [0.5, 0.8, 0.5] : [0.7, 1, 0.7],
-          }}
-          transition={{
-            scaleY: { type: "spring", ...springConfig },
-            opacity: { repeat: Infinity, duration: isFatigued ? 4 : 2.5, ease: "easeInOut", delay: 0.2 },
-            fill: { duration: 1.5 },
-          }}
-        />
-
-        {/* Mouth — droop when fatigued */}
-        <motion.path
-          animate={{
-            d: isFatigued
-              ? "M 33 62 Q 50 57 67 62"  // slight frown
-              : "M 33 61 Q 50 65 67 61", // gentle smile
-            stroke: strokeColor,
-          }}
-          stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" fill="none"
-          transition={{ type: "spring", stiffness: 100, damping: 20, stroke: { duration: 1.5 } }}
-        />
-
-        {/* Neck */}
-        <rect x="44" y="68" width="12" height="8" rx="2" fill={strokeColor} />
-
-        {/* Body */}
-        <motion.rect
-          x="16" y="76" width="68" height="50" rx="14"
-          stroke={strokeColor} strokeWidth="2.5" fill="rgba(0,0,0,0.65)"
-          animate={{ stroke: strokeColor }}
-          transition={{ duration: 1.5 }}
-        />
-
-        {/* Scroll icon on body */}
-        <motion.g
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ repeat: Infinity, duration: isFatigued ? 3.5 : 1.8 }}
-        >
-          <circle cx="50" cy="101" r="10" stroke={strokeColor} strokeWidth="1.5" fill="none" />
-          <line x1="50" y1="95" x2="50" y2="107" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" />
-          <polyline
-            points={lastScrollDir === "up" ? "46,99 50,95 54,99" : "46,103 50,107 54,103"}
-            stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"
-          />
-        </motion.g>
-
-        {/* Left arm — ref for imperative animate */}
-        <motion.rect
-          ref={armRef as any}
-          x="2" y="82" width="12" height="28" rx="6"
-          stroke={strokeColor} strokeWidth="2" fill="rgba(0,0,0,0.5)"
-          animate={{ stroke: strokeColor }}
-          transition={{ duration: 1.5 }}
-          style={{ originX: "14px", originY: "96px" }}
-        />
-        {/* Right arm */}
-        <motion.rect
-          x="86" y="82" width="12" height="28" rx="6"
-          stroke={strokeColor} strokeWidth="2" fill="rgba(0,0,0,0.5)"
-          animate={{ stroke: strokeColor }}
-          transition={{ duration: 1.5 }}
-        />
-
-        {/* Legs */}
-        <rect x="28" y="126" width="16" height="12" rx="6" stroke={strokeColor} strokeWidth="2" fill="rgba(0,0,0,0.5)" />
-        <rect x="56" y="126" width="16" height="12" rx="6" stroke={strokeColor} strokeWidth="2" fill="rgba(0,0,0,0.5)" />
-      </motion.svg>
-
-      {/* Status readout */}
-      <div className="text-center">
-        <motion.p
-          className="text-[10px] font-bold tracking-[0.2em] uppercase"
-          animate={{ color: strokeColor }}
-          transition={{ duration: 1.5 }}
-        >
-          {fatigueLabel}
-        </motion.p>
-        <p className="text-white/20 text-[9px] mt-0.5">{viewedCount} viewed</p>
-      </div>
-
-      {/* Fatigue progress bar */}
-      <div className="w-16 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+        {/* Robot Main SVG with 3D Torso/Head Tilt */}
         <motion.div
-          className="h-full rounded-full"
-          animate={{
-            width: `${Math.min(100, (viewedCount / 25) * 100)}%`,
-            backgroundColor: strokeColor,
-          }}
-          transition={{ duration: 0.6, ease: "easeOut", backgroundColor: { duration: 1.5 } }}
+          className="relative w-full h-full flex flex-col items-center justify-center"
+          style={{ rotateX, rotateY, transformStyle: "preserve-3d", filter: glowShadow }}
+        >
+          {/* Antenna */}
+          <motion.div 
+            className="w-1.5 h-6 rounded-t-full absolute -top-4"
+            style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}` }}
+          />
+          <motion.div 
+            className="w-3 h-3 rounded-full absolute -top-5"
+            style={{ backgroundColor: primaryColor, boxShadow: `0 0 15px ${primaryColor}` }}
+            animate={{ scale: isFatigued ? 1 : [1, 1.5, 1], opacity: isFatigued ? 0.5 : [0.8, 1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+          />
+
+          {/* Head */}
+          <motion.div 
+            className="w-20 h-16 rounded-[1rem] flex items-center justify-center relative border-[3px] bg-black/80 backdrop-blur-md z-20 overflow-hidden"
+            style={{ borderColor: primaryColor, rotateX: headRotateX, rotateY: headRotateY, transformStyle: "preserve-3d" }}
+          >
+            {/* Visor glass effect */}
+            <div className="absolute inset-x-2 inset-y-3 bg-gradient-to-b from-white/10 to-transparent rounded-lg pointer-events-none" />
+            
+            {/* Eyes */}
+            <div className="flex gap-4 z-10 relative" style={{ transform: "translateZ(15px)" }}>
+              <motion.div 
+                className="w-3.5 h-5 rounded-full"
+                style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}` }}
+                animate={{ 
+                  scaleY: isFatigued ? 0.3 : 1, 
+                  opacity: isFatigued ? [0.4, 0.7, 0.4] : 1 
+                }}
+                transition={{ duration: isFatigued ? 2 : 0.3, repeat: isFatigued ? Infinity : 0 }}
+              />
+              <motion.div 
+                className="w-3.5 h-5 rounded-full"
+                style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}` }}
+                animate={{ 
+                  scaleY: isFatigued ? 0.3 : 1, 
+                  opacity: isFatigued ? [0.4, 0.7, 0.4] : 1 
+                }}
+                transition={{ duration: isFatigued ? 2 : 0.3, repeat: isFatigued ? Infinity : 0, delay: 0.1 }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Neck */}
+          <div className="w-4 h-3 bg-black border-x-[2px] z-10" style={{ borderColor: primaryColor }} />
+
+          {/* Torso */}
+          <motion.div 
+            className="w-24 h-20 rounded-[1.2rem] border-[3px] bg-black/80 backdrop-blur-md z-20 flex flex-col items-center justify-center overflow-hidden relative"
+            style={{ borderColor: primaryColor }}
+          >
+            {/* Glass core */}
+            <div className="w-16 h-12 rounded-lg border border-white/10 flex items-center justify-center relative bg-white/[0.02]">
+              <motion.div 
+                className="w-8 h-8 rounded-full"
+                style={{ background: `radial-gradient(circle, ${primaryColor} 0%, transparent 70%)` }}
+                animate={{ opacity: isFatigued ? [0.2, 0.4, 0.2] : [0.5, 1, 0.5], scale: isFatigued ? 0.8 : [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: isFatigued ? 3 : 2 }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Motorized Treads / Legs */}
+          <div className="flex gap-6 mt-1 z-10">
+            <motion.div 
+              className="w-6 h-6 rounded-md border-[2px] bg-black/90 flex items-center justify-center overflow-hidden"
+              style={{ borderColor: primaryColor }}
+            >
+              <div className="w-full h-1 bg-white/20" />
+            </motion.div>
+            <motion.div 
+              className="w-6 h-6 rounded-md border-[2px] bg-black/90 flex items-center justify-center overflow-hidden"
+              style={{ borderColor: primaryColor }}
+            >
+              <div className="w-full h-1 bg-white/20" />
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* ── Jointed SVG Arms (Absolute positioned to shoot outwards) ── */}
+        <motion.div 
+          className="robot-left-arm absolute top-24 -left-4 w-12 h-4 rounded-full border-[2px] bg-black/80 origin-right z-30"
+          style={{ borderColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}` }}
         />
+        <motion.div 
+          className="robot-right-arm absolute top-24 -right-4 w-12 h-4 rounded-full border-[2px] bg-black/80 origin-left z-0"
+          style={{ borderColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}` }}
+        />
+      </motion.div>
+
+      {/* ── Status HUD ─────────────────────────────────────────────────── */}
+      <div className="text-center mt-4">
+        <motion.div
+          className="text-[11px] font-black tracking-[0.25em] uppercase"
+          animate={{ color: primaryColor }}
+          transition={{ duration: 1.5 }}
+          style={{ textShadow: `0 0 10px ${primaryColor}` }}
+        >
+          {isFatigued ? "EXHAUSTED" : viewedCount >= 15 ? "TIRED" : viewedCount >= 8 ? "ACTIVE" : "READY"}
+        </motion.div>
+        <p className="text-white/30 text-[10px] mt-1 font-mono">{viewedCount} VIEWED</p>
+        
+        {/* Fatigue Progress */}
+        <div className="w-20 h-1.5 bg-white/[0.05] rounded-full overflow-hidden mt-3 border border-white/5">
+          <motion.div
+            className="h-full rounded-full"
+            animate={{
+              width: `${Math.min(100, (viewedCount / 25) * 100)}%`,
+              backgroundColor: primaryColor,
+            }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
+        </div>
       </div>
     </div>
   );
