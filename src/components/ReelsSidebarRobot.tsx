@@ -37,7 +37,7 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
   const isForcedFocusRef = useRef(false);
 
   useEffect(() => {
-    let cachedReelX = windowSize.w / 2 - 300; // rough left offset for Reels container
+    let cachedReelX = windowSize.w / 2 - 300; 
     let cachedReelY = windowSize.h / 2;
     let hasReel = false;
 
@@ -130,11 +130,17 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
       isForcedFocusRef.current = true;
 
       try {
-        const leftArmPath = scope.current.querySelector('.arm-path-left');
-        const rightArmPath = scope.current.querySelector('.arm-path-right');
+        const ls = scope.current.querySelector('.left-shoulder');
+        const le = scope.current.querySelector('.left-elbow');
+        const lg = scope.current.querySelector('.left-gripper');
+        const rs = scope.current.querySelector('.right-shoulder');
+        const re = scope.current.querySelector('.right-elbow');
+        const rg = scope.current.querySelector('.right-gripper');
+
+        if (!ls || !le || !lg || !rs || !re || !rg) return;
         
         // 1. The Turn & Face Phase
-        // Transition rotateY towards the Reels container frame (left side, so X = 0) before moving an inch
+        // Transition rotateY towards the Reels container frame before moving an inch
         const activeReel = document.querySelector('[data-active="true"]');
         let reelCenterX = 0;
         let reelCenterY = windowSize.h / 2;
@@ -142,7 +148,6 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
         if (activeReel) {
           const rect = activeReel.getBoundingClientRect();
           reelCenterX = rect.left + rect.width / 2;
-          // Aim at the top or bottom boundary depending on direction
           reelCenterY = dir === "down" ? rect.bottom : rect.top;
         }
 
@@ -153,33 +158,46 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
         // Wait a tiny bit for the spring to physically turn its body
         await new Promise(r => setTimeout(r, 150));
 
-        // 2. The Arm Extension Mechanical Push
-        // Dynamically morph the <motion.path> to stretch out, grab, and sweep
-        if (leftArmPath && rightArmPath) {
-          // Base path (idle): M 20 20 Q 30 50 20 80
-          // Stretch path (grabbing left boundary): M 20 20 Q -100 40 -150 (bottom)
-          
-          const grabY = dir === "down" ? 180 : -50;
-          const sweepY = dir === "down" ? -80 : 180;
+        // 2. The Arm Extension Mechanical Push (Folding Sequence)
+        // Phase 1: Deep curved mechanical folding (Transit)
+        await Promise.all([
+          animate(ls, { rotate: dir === "down" ? 30 : 100 }, { duration: 0.2, ease: [0.25, 1, 0.5, 1] }),
+          animate(le, { rotate: 120 }, { duration: 0.2, ease: [0.25, 1, 0.5, 1] }),
+          animate(rs, { rotate: dir === "down" ? 40 : 110 }, { duration: 0.2, ease: [0.25, 1, 0.5, 1] }),
+          animate(re, { rotate: 120 }, { duration: 0.2, ease: [0.25, 1, 0.5, 1] }),
+        ]);
 
-          // Stretch outwards and grab
-          await Promise.all([
-            animate(leftArmPath, { d: `M 30 30 Q -80 50 -140 ${grabY}` }, { duration: 0.2, type: "spring", stiffness: 300 }),
-            animate(rightArmPath, { d: `M 70 30 Q -40 50 -120 ${grabY}` }, { duration: 0.2, type: "spring", stiffness: 300 }),
-          ]);
+        // Phase 2: Snap completely straight right when it reaches the reel box boundary
+        const grabRotLs = dir === "down" ? 55 : 135;
+        const grabRotRs = dir === "down" ? 70 : 150;
+        
+        await Promise.all([
+          animate(ls, { rotate: grabRotLs }, { duration: 0.2, type: "spring", stiffness: 300 }),
+          animate(le, { rotate: 0 }, { duration: 0.2, type: "spring", stiffness: 400 }),
+          animate(lg, { scale: 1 }, { duration: 0.15 }),
+          animate(rs, { rotate: grabRotRs }, { duration: 0.2, type: "spring", stiffness: 300 }),
+          animate(re, { rotate: 0 }, { duration: 0.2, type: "spring", stiffness: 400 }),
+          animate(rg, { scale: 1 }, { duration: 0.15 }),
+        ]);
 
-          // High-acceleration keyframe sweep upwards/downwards
-          await Promise.all([
-            animate(leftArmPath, { d: `M 30 30 Q -100 50 -140 ${sweepY}` }, { duration: 0.3, ease: "easeIn" }),
-            animate(rightArmPath, { d: `M 70 30 Q -60 50 -120 ${sweepY}` }, { duration: 0.3, ease: "easeIn" }),
-          ]);
+        // Phase 3: The actual vertical Push/Pull Sweep
+        const sweepRotLs = dir === "down" ? 135 : 55;
+        const sweepRotRs = dir === "down" ? 150 : 70;
 
-          // Snap back to idle
-          await Promise.all([
-            animate(leftArmPath, { d: `M 30 30 Q 35 55 30 80` }, { type: "spring", stiffness: 200, damping: 20 }),
-            animate(rightArmPath, { d: `M 70 30 Q 65 55 70 80` }, { type: "spring", stiffness: 200, damping: 20 }),
-          ]);
-        }
+        await Promise.all([
+          animate(ls, { rotate: sweepRotLs }, { duration: 0.35, ease: "easeInOut" }),
+          animate(rs, { rotate: sweepRotRs }, { duration: 0.35, ease: "easeInOut" }),
+        ]);
+
+        // Phase 4: Snap back to idle continuity
+        await Promise.all([
+          animate(ls, { rotate: 20 }, { type: "spring", stiffness: 200, damping: 20 }),
+          animate(le, { rotate: 45 }, { type: "spring", stiffness: 200, damping: 20 }),
+          animate(lg, { scale: 0 }, { duration: 0.15 }),
+          animate(rs, { rotate: -20 }, { type: "spring", stiffness: 200, damping: 20 }),
+          animate(re, { rotate: -45 }, { type: "spring", stiffness: 200, damping: 20 }),
+          animate(rg, { scale: 0 }, { duration: 0.15 }),
+        ]);
 
       } finally {
         isForcedFocusRef.current = false;
@@ -236,12 +254,10 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
           style={{ rotateX: l1_rotateX, rotateY: l1_rotateY, transformStyle: "preserve-3d" }}
         >
           <div className="w-28 h-40 bg-black/60 rounded-3xl border border-white/5 backdrop-blur-sm relative shadow-2xl flex flex-col items-center justify-end pb-4">
-            {/* Subtle engine exhaust radial neon glow maps */}
             <div 
               className="absolute bottom-[-10px] w-16 h-16 rounded-full blur-2xl" 
               style={{ background: `radial-gradient(circle, ${pColor} 0%, transparent 70%)`, opacity: isFatigued ? 0.8 : 0.4 }} 
             />
-            {/* Exhaust vents */}
             <div className="flex gap-2 z-10">
               <div className="w-6 h-3 bg-black/90 border border-white/10 rounded-sm" />
               <div className="w-6 h-3 bg-black/90 border border-white/10 rounded-sm" />
@@ -258,7 +274,6 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
         >
           <div className="w-24 h-32 rounded-[2rem] p-[2px] bg-gradient-to-br from-cyan-400 via-indigo-500 to-purple-600 shadow-[0_0_30px_rgba(99,102,241,0.3)]">
             <div className="w-full h-full bg-[#0a0a16]/90 backdrop-blur-xl rounded-[1.9rem] flex items-center justify-center overflow-hidden relative">
-              {/* Internal neon tracks */}
               <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
               <div className="w-12 h-12 rounded-full border-[2px] border-white/10 flex items-center justify-center">
                 <motion.div 
@@ -268,7 +283,6 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
                   transition={{ repeat: Infinity, duration: isFatigued ? 2 : 1.5 }}
                 />
               </div>
-              {/* Glass sheen */}
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent rounded-t-[1.9rem] pointer-events-none" />
             </div>
           </div>
@@ -282,10 +296,8 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
           style={{ rotateX: l3_rotateX, rotateY: l3_rotateY, transformStyle: "preserve-3d" }}
         >
           <div className="w-20 h-16 rounded-[1.5rem] bg-[#0a0a16]/80 backdrop-blur-2xl border border-white/20 shadow-xl relative overflow-hidden flex items-center justify-center gap-3">
-            {/* Visor depth highlight */}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/20 pointer-events-none" />
             
-            {/* Glowing multi-tonal custom pupils */}
             <motion.div 
               className="w-4 h-5 rounded-full relative"
               style={{ background: pColor, boxShadow: `0 0 12px ${pColor}, inset 0 0 4px white` }}
@@ -299,7 +311,6 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
               transition={{ repeat: Infinity, duration: isFatigued ? 2.5 : 0, delay: 0.1 }}
             />
             
-            {/* Sensory array dots */}
             <div className="absolute top-2 right-3 flex gap-1">
               <div className="w-1 h-1 rounded-full bg-red-400" />
               <div className="w-1 h-1 rounded-full bg-green-400" />
@@ -308,15 +319,19 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
         </motion.div>
 
         {/* ==========================================
-            LAYER 4 (Z-40): Articulated Arms
+            LAYER 4 (Z-40): Articulated SVG Arms
         ========================================== */}
         <motion.div 
           className="absolute inset-0 pointer-events-none z-40 overflow-visible"
           style={{ rotateX: l4_rotateX, rotateY: l4_rotateY, transformStyle: "preserve-3d" }}
         >
-          {/* We use a large SVG viewBox that overflows bounds so the arms can reach out to the reels card */}
-          <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] overflow-visible" viewBox="0 0 100 100">
+          <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] overflow-visible" viewBox="0 0 400 400">
             <defs>
+              <linearGradient id="armGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="50%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#9333ea" />
+              </linearGradient>
               <filter id="armGlow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur stdDeviation="3" result="blur" />
                 <feMerge>
@@ -325,27 +340,52 @@ function RobotInner({ viewedCount }: { viewedCount: number }) {
                 </feMerge>
               </filter>
             </defs>
-            {/* Left Arm */}
-            <motion.path
-              className="arm-path-left"
-              d="M 30 30 Q 35 55 30 80"
-              fill="none"
-              stroke={pColor}
-              strokeWidth="6"
-              strokeLinecap="round"
-              filter="url(#armGlow)"
-            />
-            {/* Right Arm */}
-            <motion.path
-              className="arm-path-right"
-              d="M 70 30 Q 65 55 70 80"
-              fill="none"
-              stroke={pColor}
-              strokeWidth="6"
-              strokeLinecap="round"
-              filter="url(#armGlow)"
-            />
-            {/* Claws/Hands appended dynamically or kept simple as rounded caps */}
+            
+            {/* Left Arm Assembly */}
+            <motion.g 
+              className="left-shoulder" 
+              style={{ originX: 0, originY: 0, x: 140, y: 150 }} 
+              initial={{ rotate: 20 }}
+            >
+              <line x1="0" y1="0" x2="0" y2="80" stroke="url(#armGradient)" strokeWidth="6" strokeLinecap="round" filter="url(#armGlow)" />
+              <motion.g 
+                className="left-elbow" 
+                style={{ originX: 0, originY: 0, x: 0, y: 80 }} 
+                initial={{ rotate: 45 }}
+              >
+                <line x1="0" y1="0" x2="0" y2="80" stroke="url(#armGradient)" strokeWidth="4" strokeLinecap="round" filter="url(#armGlow)" />
+                <motion.g 
+                  className="left-gripper" 
+                  style={{ originX: "15px", originY: "0px", x: -15, y: 80 }} 
+                  initial={{ scale: 0 }}
+                >
+                  <path d="M 5 0 L 0 20 L 10 25 L 15 15 L 20 25 L 30 20 L 25 0 Z" fill="url(#armGradient)" filter="url(#armGlow)" />
+                </motion.g>
+              </motion.g>
+            </motion.g>
+
+            {/* Right Arm Assembly */}
+            <motion.g 
+              className="right-shoulder" 
+              style={{ originX: 0, originY: 0, x: 260, y: 150 }} 
+              initial={{ rotate: -20 }}
+            >
+              <line x1="0" y1="0" x2="0" y2="80" stroke="url(#armGradient)" strokeWidth="6" strokeLinecap="round" filter="url(#armGlow)" />
+              <motion.g 
+                className="right-elbow" 
+                style={{ originX: 0, originY: 0, x: 0, y: 80 }} 
+                initial={{ rotate: -45 }}
+              >
+                <line x1="0" y1="0" x2="0" y2="80" stroke="url(#armGradient)" strokeWidth="4" strokeLinecap="round" filter="url(#armGlow)" />
+                <motion.g 
+                  className="right-gripper" 
+                  style={{ originX: "15px", originY: "0px", x: -15, y: 80 }} 
+                  initial={{ scale: 0 }}
+                >
+                  <path d="M 5 0 L 0 20 L 10 25 L 15 15 L 20 25 L 30 20 L 25 0 Z" fill="url(#armGradient)" filter="url(#armGlow)" />
+                </motion.g>
+              </motion.g>
+            </motion.g>
           </svg>
         </motion.div>
       </motion.div>
