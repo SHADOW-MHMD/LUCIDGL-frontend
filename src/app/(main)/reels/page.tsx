@@ -8,6 +8,7 @@ import type { FacePost } from "@/types";
 import { CommentsPanel } from "@/components/CommentsPanel";
 import { motion } from "framer-motion";
 import { env } from "@/lib/env";
+import { useReels } from "@/components/ReelsContext";
 
 export default function ReelsPage() {
   const { user } = useAuth();
@@ -100,9 +101,11 @@ export default function ReelsPage() {
 
 function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: () => void }) {
   const { user } = useAuth();
+  const { incrementViewed } = useReels();
   const videoRef = useRef<HTMLDivElement>(null);
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const hasCountedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(reel.like_count);
   const [isLiked, setIsLiked] = useState(!!reel.is_liked);
@@ -122,6 +125,14 @@ function ReelCard({ reel, onOpenComments }: { reel: FacePost; onOpenComments: ()
 
     return () => observer.disconnect();
   }, []);
+
+  // Increment fatigue count once per reel when it first becomes visible
+  useEffect(() => {
+    if (isVisible && !hasCountedRef.current) {
+      hasCountedRef.current = true;
+      incrementViewed();
+    }
+  }, [isVisible, incrementViewed]);
 
   useEffect(() => {
     if (videoElementRef.current) {
