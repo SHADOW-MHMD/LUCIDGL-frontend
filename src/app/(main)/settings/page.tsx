@@ -313,10 +313,10 @@ export default function SettingsPage() {
                     <GlassToggle checked={appearanceToggles.animations} onChange={() => toggleAppearance('animations')} />
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
                     <div>
-                      <p className="text-white font-medium">Enable Lucid Robot Assistants</p>
-                      <p className="text-white/50 text-sm">Disables intensive canvas SVG tracking and unmounts sidebar event handlers for lower-end computer rigs.</p>
+                      <h4 className="text-white font-medium text-sm">Enable Lucid Robot Companions</h4>
+                      <p className="text-white/60 text-xs mt-1">Toggles advanced isometric canvas transformations and unmounts intense mouse-tracking listeners for low-end processors.</p>
                     </div>
                     <GlassToggle checked={appearanceToggles.lucidRobots} onChange={() => toggleAppearance('lucidRobots')} />
                   </div>
