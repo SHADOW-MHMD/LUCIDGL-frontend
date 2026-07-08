@@ -232,7 +232,7 @@ export default function FacesUploadPage() {
                     type="submit"
                     disabled={!file || isUploading}
                     whileTap={!file || isUploading ? {} : { scale: 0.98 }}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 disabled:hover:from-cyan-500 disabled:hover:to-blue-500 text-white font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-50 disabled:hover:from-cyan-500 disabled:hover:to-indigo-500 text-white font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
                   >
                     {isUploading ? (
                       <>
