@@ -149,7 +149,7 @@ export default function CodeHubPage() {
     >
       <div className="max-w-3xl mx-auto space-y-8">
         <motion.div
-          className="rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)] overflow-hidden"
+          className="rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)] overflow-hidden"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
@@ -248,7 +248,7 @@ export default function CodeHubPage() {
                           animate={{ y: isDragging ? -8 : 0, rotate: isDragging ? 8 : 0 }}
                           transition={{ type: "spring", stiffness: 180, damping: 16 }}
                         >
-                          <div className="absolute inset-0 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10" />
+                          <div className="absolute inset-0 rounded-3xl bg-white/5 backdrop-blur-md border border-white/[0.08]" />
                           <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-indigo-400/20 via-cyan-400/10 to-violet-500/10" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             {isDragging ? <Sparkles className="w-9 h-9 text-indigo-300" /> : <Package2 className="w-8 h-8 text-white/70" />}
@@ -314,11 +314,11 @@ export default function CodeHubPage() {
             )}
 
             <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-xl">
                 <UploadRobotHelper status={robotStatus} message={robotMessage} disableAnimations={!lucidRobots} className="w-full" />
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
+              <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
                 <div className="flex items-center gap-2 text-white font-semibold">
                   <XCircle className="w-4 h-4 text-indigo-300" />
                   Upload rules

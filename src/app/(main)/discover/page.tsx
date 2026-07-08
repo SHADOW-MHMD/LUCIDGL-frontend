@@ -114,7 +114,7 @@ function TrendingCarousel({ communities }: { communities: Community[] }) {
               id={`community-carousel-card-${c.id}`}
               style={{ width: CARD_W, flexShrink: 0 }}
               whileHover={{ scale: 1.03, transition: { type: "spring", stiffness: 300, damping: 22 } }}
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 select-none"
+              className="bg-white/5 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5 select-none"
             >
               <div className="flex items-center gap-3 mb-3">
                 {c.logo_url ? (
@@ -319,7 +319,7 @@ export default function DiscoverPage() {
                 layout
                 exit={{ opacity: 0, scale: 0.9 }}
                 whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-                className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+                className="bg-white/5 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5"
               >
                 <span className="inline-block px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold mb-3">
                   {item.tag}

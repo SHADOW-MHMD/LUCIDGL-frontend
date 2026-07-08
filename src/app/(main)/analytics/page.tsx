@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-white/65 text-xs uppercase tracking-[0.35em] mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-white/65 text-xs uppercase tracking-[0.35em] mb-4">
             <BarChart3 size={14} />
             Live signals
           </div>

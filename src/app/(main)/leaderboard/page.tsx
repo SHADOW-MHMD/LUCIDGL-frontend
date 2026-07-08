@@ -146,7 +146,7 @@ export default function LeaderboardPage() {
 
                 {/* Podium Block */}
                 <div
-                  className={`w-28 md:w-40 rounded-t-xl bg-white/[0.03] backdrop-blur-md border border-white/10 flex flex-col items-center justify-start pt-4 overflow-hidden ${
+                  className={`w-28 md:w-40 rounded-t-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.08] flex flex-col items-center justify-start pt-4 overflow-hidden ${
                     isRank1 ? "h-48 border-t-yellow-400/50 shadow-[0_-5px_25px_rgba(250,204,21,0.15)]" : rank === 2 ? "h-36 border-t-slate-400/50" : "h-28 border-t-orange-600/50"
                   }`}
                 >
@@ -197,7 +197,7 @@ export default function LeaderboardPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
+                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/[0.08]">
                             {user.avatar_url ? (
                               <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
                             ) : (

@@ -124,9 +124,9 @@ export default function FacesUploadPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10 lg:py-14">
+    <div className="max-w-3xl mx-auto px-4 py-10 lg:py-14">
       <motion.div
-        className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)]"
+        className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)]"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
@@ -175,7 +175,7 @@ export default function FacesUploadPage() {
                       const dropped = e.dataTransfer.files?.[0];
                       if (dropped) handleFileChange({ target: { files: [dropped] } } as any);
                     }}
-                    className={`relative flex flex-col items-center justify-center w-full min-h-[380px] rounded-[1.5rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${
+                    className={`relative flex flex-col items-center justify-center w-full min-h-[320px] rounded-[1.5rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${
                       file ? "border-cyan-400/50 bg-cyan-400/5" : isDragging ? "border-cyan-300 bg-cyan-400/10" : "border-white/20 bg-white/[0.02]"
                     }`}
                   >
@@ -204,7 +204,7 @@ export default function FacesUploadPage() {
                           animate={{ y: isDragging ? -8 : 0, rotate: isDragging ? -8 : 0 }}
                           transition={{ type: "spring", stiffness: 180, damping: 16 }}
                         >
-                          <div className="absolute inset-0 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10" />
+                          <div className="absolute inset-0 rounded-3xl bg-white/5 backdrop-blur-md border border-white/[0.08]" />
                           <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-cyan-400/20 via-sky-400/10 to-fuchsia-500/10" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             {isDragging ? <Sparkles className="w-9 h-9 text-cyan-300" /> : <Upload className="w-8 h-8 text-white/70" />}
@@ -248,7 +248,7 @@ export default function FacesUploadPage() {
           </form>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-xl">
               <UploadRobotHelper
                 status={robotStatus}
                 message={robotMessage}
@@ -256,7 +256,7 @@ export default function FacesUploadPage() {
                 className="w-full"
               />
             </div>
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
               <div className="flex items-center gap-2 text-white font-semibold">
                 <ImageOff className="w-4 h-4 text-cyan-300" />
                 Upload rules
