@@ -6,6 +6,8 @@ export type UploadStatus = "idle" | "dragging" | "success" | "error";
 
 interface UploadRobotHelperProps {
   status: UploadStatus;
+  message?: string;
+  disableAnimations?: boolean;
   className?: string;
 }
 
@@ -14,10 +16,20 @@ interface UploadRobotHelperProps {
  * All SVG elements are written inline — no external file imports —
  * so we can animate their paths, colors, and geometry directly.
  */
-export function UploadRobotHelper({ status, className = "" }: UploadRobotHelperProps) {
+export function UploadRobotHelper({ status, message, disableAnimations = false, className = "" }: UploadRobotHelperProps) {
   const isDragging = status === "dragging";
   const isSuccess = status === "success";
   const isError = status === "error";
+
+  const resolvedMessage =
+    message ??
+    (isSuccess
+      ? "Upload accepted. I am now emotionally invested in your file."
+      : isError
+      ? "That file got rejected by the robot union. Fix it and try again."
+      : isDragging
+      ? "Drop it in. I promise to be only slightly judgmental."
+      : "Bring me a file and I will make a scene out of it.");
 
   const strokeColor =
     isSuccess ? "#00ff88"
@@ -31,13 +43,22 @@ export function UploadRobotHelper({ status, className = "" }: UploadRobotHelperP
     : isDragging ? "drop-shadow(0 0 12px #a78bfa60)"
     : "drop-shadow(0 0 8px #00f3ff40)";
 
+  if (disableAnimations) {
+    return (
+      <div className={`rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-4 text-left shadow-[0_18px_60px_rgba(0,0,0,0.35)] ${className}`}>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-white/35">Lucid Bot</p>
+        <p className="mt-2 text-sm leading-snug text-white/85">“{resolvedMessage}”</p>
+      </div>
+    );
+  }
+
   // Eye props change per status
   const eyeOpenY = isDragging ? 37 : 40;
   const eyeOpenR = isDragging ? 7 : 5;
 
   return (
     <motion.div
-      className={`flex items-center justify-center ${className}`}
+      className={`relative flex flex-col items-center justify-center gap-4 ${className}`}
       // Error shake
       animate={
         isError
@@ -46,7 +67,26 @@ export function UploadRobotHelper({ status, className = "" }: UploadRobotHelperP
       }
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
+      <motion.div
+        className="absolute inset-x-8 top-4 h-24 rounded-full blur-3xl opacity-70"
+        style={{ background: isError ? "rgba(248, 113, 113, 0.22)" : isSuccess ? "rgba(52, 211, 153, 0.22)" : "rgba(56, 189, 248, 0.22)" }}
+        animate={{ scale: isDragging ? [1, 1.06, 1] : 1, opacity: isDragging ? 0.95 : 0.7 }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className={`relative z-10 max-w-[240px] rounded-2xl border px-4 py-3 text-center backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.35)] ${
+          isError ? "border-red-500/30 bg-red-500/10" : isSuccess ? "border-emerald-500/30 bg-emerald-500/10" : isDragging ? "border-violet-400/30 bg-violet-500/10" : "border-cyan-400/20 bg-slate-950/70"
+        }`}
+        animate={{ y: isDragging ? -2 : 0, rotate: isError ? -1.2 : 0 }}
+        transition={{ type: "spring", stiffness: 240, damping: 18 }}
+      >
+        <p className="text-[10px] uppercase tracking-[0.35em] text-white/35">Lucid Bot</p>
+        <p className="mt-2 text-sm leading-snug text-white/85">“{resolvedMessage}”</p>
+      </motion.div>
+
       <motion.svg
+        className="relative z-10"
         viewBox="0 0 100 140"
         width="120"
         height="168"

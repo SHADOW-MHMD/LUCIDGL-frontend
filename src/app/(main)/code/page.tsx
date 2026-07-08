@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { CodeFile } from "@/types";
-import { Upload, Download, FileArchive, Smartphone, Loader2 } from "lucide-react";
+import { Upload, Download, FileArchive, Smartphone, Loader2, Bot, Sparkles, Package2, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { env } from "@/lib/env";
+import { UploadRobotHelper, UploadStatus } from "@/components/UploadRobotHelper";
 
 const apiUrl = env.apiUrl;
 
@@ -27,6 +28,30 @@ export default function CodeHubPage() {
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lucidRobots, setLucidRobots] = useState(true);
+
+  useEffect(() => {
+    try {
+      const app = localStorage.getItem("settings_appearance");
+      if (!app) return;
+      const parsed = JSON.parse(app);
+      if (parsed.lucidRobots !== undefined) setLucidRobots(Boolean(parsed.lucidRobots));
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const robotStatus: UploadStatus = uploadError ? "error" : uploadSuccess ? "success" : isDragging ? "dragging" : "idle";
+  const robotMessage =
+    uploadError ||
+    (uploadSuccess
+      ? "Bundle received. The robot has promoted your archive to legendary status."
+      : selectedFile
+      ? `${selectedFile.name} looks usable. I expected a disaster and got a package. Respect.`
+      : isDragging
+      ? "Drop the archive. I am trying very hard not to look excited."
+      : "Bring me a ZIP or APK and I will sort out the drama.");
 
   const fetchFiles = async () => {
     setLoadingFiles(true);
@@ -62,6 +87,10 @@ export default function CodeHubPage() {
       const ext = selectedFile.name.split(".").pop()?.toLowerCase();
       const fileType = ext === "apk" ? "apk" : "zip";
 
+      if (!ext || (ext !== "zip" && ext !== "apk")) {
+        throw new Error("Only ZIP or APK files are allowed. This file is dressed wrong.");
+      }
+
       const formData = new FormData();
       formData.append("file", selectedFile);
       if (caption) formData.append("caption", caption);
@@ -84,6 +113,7 @@ export default function CodeHubPage() {
       setUploadSuccess(true);
       setCaption("");
       setSelectedFile(null);
+      setIsDragging(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       await fetchFiles();
     } catch (err: unknown) {
@@ -118,144 +148,189 @@ export default function CodeHubPage() {
       transition={{ duration: 0.4 }}
     >
       <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
         <motion.div
-          className="text-center"
+          className="rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)] overflow-hidden"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <h1 className="text-4xl font-bold text-white tracking-tight">Code Hub</h1>
-          <p className="text-white/50 mt-2 text-sm">Share your ZIP projects &amp; APK builds with the community</p>
-        </motion.div>
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:26px_26px] opacity-20 pointer-events-none" />
+          <div className="relative z-10 flex items-center gap-3 mb-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-400/10 text-indigo-300">
+              <Bot size={20} />
+            </span>
+            <div>
+              <h1 className="text-4xl font-black text-white tracking-tight">Code Hub</h1>
+              <p className="text-white/55 mt-1 text-sm">Share your ZIP projects &amp; APK builds with a robot that talks too much.</p>
+            </div>
+          </div>
 
-        {/* Upload Section */}
-        {user && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <form onSubmit={handleUpload} className="bg-[#0d0d1a] border border-white/[0.08] rounded-2xl p-6 shadow-2xl space-y-6">
+          <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_300px] items-start">
+            {/* Upload Section */}
+            {user && (
               <motion.div
-                onClick={() => fileInputRef.current?.click()}
-                whileHover={{ scale: 1.01, borderColor: "rgb(139, 92, 246)" }}
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "rgb(139, 92, 246)"; }}
-                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = ""; }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.style.borderColor = "";
-                  const dropped = e.dataTransfer.files?.[0];
-                  if (dropped) {
-                     if (dropped.size > 20 * 1024 * 1024) {
-                       setUploadError("File exceeds 20MB limit");
-                       setSelectedFile(null);
-                     } else {
-                       setSelectedFile(dropped);
-                       setUploadError(null);
-                     }
-                  }
-                }}
-                className={`relative flex flex-col items-center justify-center w-full min-h-[300px] rounded-xl border-2 border-dashed transition-colors cursor-pointer overflow-hidden ${
-                  selectedFile ? "border-violet-500/50 bg-violet-500/5" : "border-white/20 bg-white/[0.02]"
-                }`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".zip,.apk,.rar"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file && file.size > 20 * 1024 * 1024) {
-                      setUploadError("File exceeds 20MB limit");
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    } else {
-                      setSelectedFile(file ?? null);
-                      setUploadError(null);
-                    }
-                  }}
-                />
-                
-                {selectedFile ? (
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto rounded-xl bg-violet-500/20 flex items-center justify-center mb-4">
-                      <FileArchive className="w-8 h-8 text-violet-400" />
-                    </div>
-                    <p className="text-white font-medium">{selectedFile.name}</p>
-                    <p className="text-white/50 text-sm mt-1">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <div className="relative w-16 h-16 mx-auto mb-4">
-                      <div className="absolute inset-0 bg-white/5 rounded-xl flex items-center justify-center">
-                        <FileArchive className="w-8 h-8 text-white/60" />
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-violet-500 rounded-full flex items-center justify-center border-2 border-[#0d0d1a]">
-                        <span className="text-white text-lg font-bold leading-none mb-0.5">+</span>
-                      </div>
-                    </div>
-                    <p className="text-white font-medium mb-1">
-                      <span className="text-violet-400">Choose a file</span> or drag & drop it here
-                    </p>
-                    <p className="text-gray-400 text-sm">ZIP, RAR, and APK formats, up to 20MB</p>
-                  </div>
-                )}
-              </motion.div>
+                <form onSubmit={handleUpload} className="bg-[#0d0d1a]/75 border border-white/[0.08] rounded-[1.75rem] p-6 shadow-2xl space-y-6 backdrop-blur-xl">
+                  <motion.div
+                    onClick={() => fileInputRef.current?.click()}
+                    whileHover={{ scale: 1.01, rotate: -0.15 }}
+                    onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); e.currentTarget.style.borderColor = "rgb(99, 102, 241)"; }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); e.currentTarget.style.borderColor = ""; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      e.currentTarget.style.borderColor = "";
+                      const dropped = e.dataTransfer.files?.[0];
+                      if (dropped) {
+                        if (dropped.size > 20 * 1024 * 1024) {
+                          setUploadError("20MB max. This archive is hauling too much ego.");
+                          setSelectedFile(null);
+                        } else {
+                          const ext = dropped.name.split(".").pop()?.toLowerCase();
+                          if (ext !== "zip" && ext !== "apk") {
+                            setUploadError("Only ZIP or APK files are allowed. Not whatever this is.");
+                            setSelectedFile(null);
+                          } else {
+                            setSelectedFile(dropped);
+                            setUploadError(null);
+                            setUploadSuccess(false);
+                          }
+                        }
+                      }
+                    }}
+                    className={`relative flex flex-col items-center justify-center w-full min-h-[320px] rounded-[1.5rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${
+                      selectedFile ? "border-indigo-400/50 bg-indigo-500/5" : isDragging ? "border-indigo-300 bg-indigo-500/10" : "border-white/20 bg-white/[0.02]"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".zip,.apk"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split(".").pop()?.toLowerCase();
+                        if (file.size > 20 * 1024 * 1024) {
+                          setUploadError("20MB max. Please stop trying to ship the whole internet.");
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        } else if (ext !== "zip" && ext !== "apk") {
+                          setUploadError("Only ZIP or APK files are allowed. This one is not invited.");
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        } else {
+                          setSelectedFile(file);
+                          setUploadError(null);
+                          setUploadSuccess(false);
+                        }
+                      }}
+                    />
 
-              <div>
-                <input
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Add a caption..."
-                  className="w-full bg-white/[0.02] border-b border-white/[0.08] text-white px-4 py-3 placeholder:text-white/30 focus:outline-none focus:border-violet-500 transition-colors"
-                />
+                    {selectedFile ? (
+                      <div className="text-center px-4">
+                        <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/15 flex items-center justify-center mb-4 border border-indigo-400/20">
+                          <FileArchive className="w-8 h-8 text-indigo-300" />
+                        </div>
+                        <p className="text-white font-medium break-all">{selectedFile.name}</p>
+                        <p className="text-white/50 text-sm mt-1">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center px-4">
+                        <motion.div
+                          className="relative w-24 h-24 mx-auto mb-5"
+                          animate={{ y: isDragging ? -8 : 0, rotate: isDragging ? 8 : 0 }}
+                          transition={{ type: "spring", stiffness: 180, damping: 16 }}
+                        >
+                          <div className="absolute inset-0 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10" />
+                          <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-indigo-400/20 via-cyan-400/10 to-violet-500/10" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            {isDragging ? <Sparkles className="w-9 h-9 text-indigo-300" /> : <Package2 className="w-8 h-8 text-white/70" />}
+                          </div>
+                        </motion.div>
+                        <p className="text-white font-semibold mb-1">
+                          <span className="text-indigo-300">Choose a file</span> or drag & drop it here
+                        </p>
+                        <p className="text-gray-400 text-sm">ZIP or APK only, up to 20MB. The robot already checked your confidence.</p>
+                      </div>
+                    )}
+                  </motion.div>
+
+                  <div>
+                    <input
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      placeholder="Add a caption..."
+                      className="w-full rounded-2xl bg-white/[0.02] border border-white/[0.08] text-white px-4 py-3 placeholder:text-white/30 focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+
+                  <AnimatePresence>
+                    {uploadError && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-red-300 text-sm bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-center"
+                      >
+                        {uploadError}
+                      </motion.p>
+                    )}
+                    {uploadSuccess && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-emerald-300 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3 text-center"
+                      >
+                        ✓ File uploaded successfully!
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
+                  <motion.button
+                    type="submit"
+                    disabled={!selectedFile || uploading}
+                    whileTap={!selectedFile || uploading ? {} : { scale: 0.98 }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 disabled:opacity-50 disabled:hover:from-indigo-500 disabled:hover:to-cyan-500 text-white font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      "Upload"
+                    )}
+                  </motion.button>
+                </form>
+              </motion.div>
+            )}
+
+            <div className="space-y-4">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+                <UploadRobotHelper status={robotStatus} message={robotMessage} disableAnimations={!lucidRobots} className="w-full" />
               </div>
 
-              <AnimatePresence>
-                {uploadError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-center"
-                  >
-                    {uploadError}
-                  </motion.p>
-                )}
-                {uploadSuccess && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3 text-center"
-                  >
-                    ✓ File uploaded successfully!
-                  </motion.p>
-                )}
-              </AnimatePresence>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <XCircle className="w-4 h-4 text-indigo-300" />
+                  Upload rules
+                </div>
+                <p>• ZIP or APK only.</p>
+                <p>• 20MB max. The robot is not a storage-based life form.</p>
+                <p>• Small captions. Big energy.</p>
+              </div>
+            </div>
+          </div>
 
-              <motion.button
-                type="submit"
-                disabled={!selectedFile || uploading}
-                whileTap={!selectedFile || uploading ? {} : { scale: 0.98 }}
-                className="w-full py-4 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:hover:bg-violet-600 text-white font-bold transition-colors flex items-center justify-center gap-2"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Upload"
-                )}
-              </motion.button>
-            </form>
-          </motion.div>
-        )}
+        </motion.div>
 
         {/* Files List */}
         <div>
