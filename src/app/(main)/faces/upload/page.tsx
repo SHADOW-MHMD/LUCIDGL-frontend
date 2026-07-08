@@ -124,30 +124,29 @@ export default function FacesUploadPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 lg:py-14">
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-start">
-        <motion.div
-          className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)]"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20 pointer-events-none" />
+    <div className="max-w-5xl mx-auto px-4 py-10 lg:py-14">
+      <motion.div
+        className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.35)]"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+      >
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20 pointer-events-none" />
 
-          <div className="relative z-10 flex items-center gap-3 mb-5">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
-              <Bot size={20} />
-            </span>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-                Upload to Faces
-              </h1>
-              <p className="text-white/55 text-sm md:text-base">Your clip gets a robot host, a quick roast, and a clean runway.</p>
-            </div>
+        <div className="relative z-10 flex items-center gap-3 mb-5">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+            <Bot size={20} />
+          </span>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+              Upload to Faces
+            </h1>
+            <p className="text-white/55 text-sm md:text-base">Your clip gets a robot host, a quick roast, and a clean runway.</p>
           </div>
+        </div>
 
-          <div className="relative z-10 grid gap-6 xl:grid-cols-[1fr_320px] items-start">
-            <form onSubmit={handleSubmit} className="bg-[#0d0d1a]/75 border border-white/[0.08] rounded-[1.75rem] p-5 md:p-6 shadow-2xl space-y-6 backdrop-blur-xl">
+        <div className="relative z-10 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-[#0d0d1a]/75 border border-white/[0.08] rounded-[1.75rem] p-5 md:p-6 shadow-2xl space-y-6 backdrop-blur-xl">
               {success ? (
                 <div className="flex flex-col items-center justify-center p-10 text-center animate-in fade-in zoom-in duration-500">
                   <CheckCircle className="w-20 h-20 text-green-400 mb-4" />
@@ -176,7 +175,7 @@ export default function FacesUploadPage() {
                       const dropped = e.dataTransfer.files?.[0];
                       if (dropped) handleFileChange({ target: { files: [dropped] } } as any);
                     }}
-                    className={`relative flex flex-col items-center justify-center w-full min-h-[320px] rounded-[1.5rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${
+                    className={`relative flex flex-col items-center justify-center w-full min-h-[380px] rounded-[1.5rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${
                       file ? "border-cyan-400/50 bg-cyan-400/5" : isDragging ? "border-cyan-300 bg-cyan-400/10" : "border-white/20 bg-white/[0.02]"
                     }`}
                   >
@@ -246,31 +245,29 @@ export default function FacesUploadPage() {
                   </motion.button>
                 </>
               )}
-            </form>
+          </form>
 
-            <div className="space-y-4">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-                <UploadRobotHelper
-                  status={robotStatus}
-                  message={robotMessage}
-                  disableAnimations={!lucidRobots}
-                  className="w-full"
-                />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <UploadRobotHelper
+                status={robotStatus}
+                message={robotMessage}
+                disableAnimations={!lucidRobots}
+                className="w-full"
+              />
+            </div>
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <ImageOff className="w-4 h-4 text-cyan-300" />
+                Upload rules
               </div>
-
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl space-y-3 text-sm text-white/70">
-                <div className="flex items-center gap-2 text-white font-semibold">
-                  <ImageOff className="w-4 h-4 text-cyan-300" />
-                  Upload rules
-                </div>
-                <p>• MP4 or WebM only.</p>
-                <p>• 20MB max. Tiny restraint goes a long way.</p>
-                <p>• Better captions get better robot respect.</p>
-              </div>
+              <p>• MP4 or WebM only.</p>
+              <p>• 20MB max. Tiny restraint goes a long way.</p>
+              <p>• Better captions get better robot respect.</p>
             </div>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
