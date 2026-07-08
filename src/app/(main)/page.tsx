@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Zap, Shield, LayoutGrid, Heart, Play, Download, MessageSquare } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+
 
 const FeatureSection = ({
   title,
@@ -20,31 +20,15 @@ const FeatureSection = ({
 }) => {
   return (
     <div className={`flex flex-col gap-12 lg:gap-20 items-center justify-between max-w-7xl mx-auto px-6 py-24 ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
-      <motion.div 
-        className="flex-1 space-y-6"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
+      <div className="flex-1 space-y-6">
         <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{title}</h2>
         <p className="text-xl text-gray-400 leading-relaxed max-w-xl">{description}</p>
-      </motion.div>
-      <motion.div 
-        className="flex-1 flex justify-center items-center w-full"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-      >
-        <motion.div
-          animate={{ y: [-5, 5, -5] }}
-          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          className="w-full max-w-md flex justify-center relative"
-        >
+      </div>
+      <div className="flex-1 flex justify-center items-center w-full">
+        <div className="w-full max-w-md flex justify-center relative animate-[bounce_4s_ease-in-out_infinite]">
           {mockUI}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -64,62 +48,36 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-gray-950 to-gray-950 overflow-hidden font-sans">
       {/* Hero Section */}
-      <motion.div
-        className="flex flex-col items-center justify-center pt-32 pb-20 px-6 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+      <div className="flex flex-col items-center justify-center pt-32 pb-20 px-6 text-center">
+        <div
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-8"
         >
           <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
           v2.0 Engine Online
         </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white via-white/90 to-white/40"
-        >
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white via-white/90 to-white/40">
           The Next Generation of <br className="hidden md:block" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-500">
             Agentic Interfaces
           </span>
-        </motion.h1>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed"
-        >
+        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
           Experience zero-latency interactions with our optimistic UI updates,
           bulletproof hydration firewalls, and premium aesthetic design.
-        </motion.p>
+        </p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-20"
-        >
-          <motion.button
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-20">
+          <button
             onClick={signIn}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold tracking-wide shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group transition-colors duration-200"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold tracking-wide shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group transition-all duration-200 ease-out hover:scale-105 active:scale-95"
           >
             Start your journey
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-        </motion.div>
-      </motion.div>
+          </button>
+        </div>
+      </div>
 
       {/* Feature Sections */}
       <div className="flex flex-col gap-12 relative z-10">
@@ -242,27 +200,19 @@ export default function Home() {
       </div>
 
       {/* Final CTA Section */}
-      <motion.div
-        className="flex flex-col items-center justify-center py-32 px-6 text-center relative z-10"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
+      <div className="flex flex-col items-center justify-center py-32 px-6 text-center relative z-10">
         <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Ready to dive in?</h2>
         <p className="text-xl text-gray-400 max-w-2xl mb-10">
           Join thousands of developers and creators building the next generation of applications.
         </p>
-        <motion.button
+        <button
           onClick={signIn}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-8 py-4 rounded-xl bg-white text-gray-950 font-bold text-lg hover:bg-gray-100 transition-colors shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center gap-2"
+          className="px-8 py-4 rounded-xl bg-white text-gray-950 font-bold text-lg hover:bg-gray-100 transition-all duration-200 ease-out shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center gap-2 hover:scale-105 active:scale-95"
         >
           Get Started Now
           <ArrowRight className="w-5 h-5" />
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
     </div>
   );
 }
