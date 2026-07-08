@@ -64,12 +64,84 @@ npm run lint         # ESLint with Next.js config
 | Add state persistence | Use React Context + `useEffect` with localStorage (chat, sidebar state) |
 | Style with Glassmorphism | `bg-white/5 backdrop-blur-xl border border-white/10` |
 
+## Testing
+
+⚠️ **No testing infrastructure exists yet**. This is a known gap.
+
+**Current state**:
+- No Jest, Vitest, or Testing Library configured
+- No test files
+- No test dependencies
+
+**To add testing**: Agents should propose or implement:
+1. Install Testing Library: `npm install --save-dev @testing-library/react @testing-library/jest-dom vitest`
+2. Create `vitest.config.ts` (configure for Next.js 16 + React 19)
+3. Add test scripts to `package.json`:
+   ```json
+   {
+     "scripts": {
+       "test": "vitest",
+       "test:ui": "vitest --ui"
+     }
+   }
+   ```
+4. Create test files in `src/` (e.g., `src/components/chat/__tests__/ChatArea.test.tsx`)
+
+**Backend has Vitest + Workers pool** — See [backend/lucid-gl/AGENTS.md](../../backend/lucid-gl/AGENTS.md#testing) for pattern to follow.
+
+## Deployment
+
+**Deployment target**: Vercel (recommended for Next.js 16)
+
+**Pre-deploy checklist**:
+1. Run `npm run lint` — Fix any ESLint errors
+2. Run `npm run build` — Ensure production build succeeds
+3. Verify environment variables are set:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_API_URL` (backend URL)
+
+**Deploy to Vercel**:
+```bash
+# Option 1: Git push (recommended)
+git push origin main
+# Vercel auto-deploys on push
+
+# Option 2: Vercel CLI
+npm install -g vercel
+vercel deploy
+```
+
+**Alternative deployment** (self-hosted):
+```bash
+npm run build
+npm run start  # Requires Node.js 18+
+```
+
+**Post-deploy**:
+- Verify Supabase connection (check browser Network tab for `/auth/` requests)
+- Test real-time chat (open in 2 browser windows)
+- Check backend API URL is correct (Network tab → `/api/...` requests)
+
+## Common Tasks
+
+| Task | File/Pattern |
+|------|-----------|
+| Add a new route | Create `app/(main)/my-feature/page.tsx` |
+| Add a component | Create in `src/components/` with `'use client'` if interactive |
+| Query Supabase | Use `src/lib/supabase.ts` client + real-time subscriptions |
+| Call backend API | Fetch to `/api/...` or use `useAuth` hook for auth context |
+| Add state persistence | Use React Context + `useEffect` with localStorage (chat, sidebar state) |
+| Style with Glassmorphism | `bg-white/5 backdrop-blur-xl border border-white/10` |
+| Add a test | Create `src/components/__tests__/MyComponent.test.tsx` (after testing infrastructure is set up) |
+
 ## Troubleshooting
 
 - **Next.js 16 types not found**: Run `npm run build` first to generate `.next/`
 - **Supabase connection fails**: Check `env.ts` URLs and anon key
 - **Real-time not updating**: Verify Supabase subscription is active in `useEffect` cleanup
-- **Lint errors on `use client`**: Ensure directive is on first line of file
+- **Lint errors on `use client`**: Ensure directive is on **first line** of file
+- **Backend API 401 errors**: Verify bearer token is valid; check backend logs for token validation details
 
 ---
 

@@ -180,16 +180,19 @@ export default function MessagesPage() {
     <div className="h-screen w-full flex overflow-hidden bg-[#0a0a0f] text-white font-sans">
       
       {/* LEFT SIDEBAR */}
-      <div className="w-[350px] h-full bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col shrink-0 shadow-2xl z-20">
+      <div className="w-[350px] h-full bg-white/[0.03] backdrop-blur-md border-r border-white/[0.08] flex flex-col shrink-0 shadow-2xl z-20">
         
         {/* Top Header / Back */}
         <div className="px-4 pt-6 pb-2">
-          <button 
+          <motion.button 
             onClick={() => router.back()} 
+            whileHover={{ x: -2 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
             className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-[13px] font-medium w-fit"
           >
             <ArrowLeft size={16} /> Back
-          </button>
+          </motion.button>
         </div>
 
         {/* Search Header */}
@@ -201,31 +204,37 @@ export default function MessagesPage() {
               placeholder="Search" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/30 focus:bg-black/30 transition-all shadow-inner"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-indigo-500/30 focus:bg-white/[0.05] transition-all shadow-inner"
             />
           </div>
         </div>
 
         {/* Toggles */}
         <div className="flex px-4 gap-6 border-b border-white/[0.08]">
-          <button 
+          <motion.button 
             onClick={() => handleSetTab('communities')}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 24 }}
             className={`pb-3 text-sm font-medium relative transition-colors ${activeTab === 'communities' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
           >
             Communities
             {activeTab === 'communities' && (
-              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-violet-500 rounded-t-full" />
+              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full" />
             )}
-          </button>
-          <button 
+          </motion.button>
+          <motion.button 
             onClick={() => handleSetTab('dms')}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 24 }}
             className={`pb-3 text-sm font-medium relative transition-colors ${activeTab === 'dms' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
           >
             Direct Messages
             {activeTab === 'dms' && (
-              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-violet-500 rounded-t-full" />
+              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full" />
             )}
-          </button>
+          </motion.button>
         </div>
 
         {/* Content Area */}
@@ -240,7 +249,7 @@ export default function MessagesPage() {
                 className="p-2 space-y-1"
               >
                 {filteredCommunities.length === 0 && (
-                  <div className="flex flex-col items-center justify-center p-8 mt-4 mx-2 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md">
+                  <div className="flex flex-col items-center justify-center p-8 mt-4 mx-2 bg-white/[0.03] border border-white/[0.08] rounded-2xl backdrop-blur-md">
                     <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 3, repeat: Infinity }}>
                       <Compass className="w-10 h-10 text-white/20 mb-3" />
                     </motion.div>
@@ -248,10 +257,13 @@ export default function MessagesPage() {
                   </div>
                 )}
                 {filteredCommunities.map(c => (
-                  <div 
+                  <motion.button
                     key={c.id} 
                     onClick={() => setSelectedCommunityId(c.id)} 
-                    className="flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl hover:bg-white/10 cursor-pointer transition-all duration-200 group border border-transparent hover:border-white/5"
+                    whileHover={{ x: 3 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                    className="w-full flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl hover:bg-white/[0.05] cursor-pointer transition-all duration-200 group border border-transparent hover:border-white/[0.08] text-left"
                   >
                     {c.logo_url ? (
                       <img src={c.logo_url} alt="" className="w-12 h-12 rounded-full object-cover shrink-0 border border-white/[0.08]" />
@@ -266,18 +278,21 @@ export default function MessagesPage() {
                       </div>
                       <p className="text-[13px] text-white/50 truncate group-hover:text-white/70">Click to view channels</p>
                     </div>
-                  </div>
+                  </motion.button>
                 ))}
                 
-                <button 
+                <motion.button 
                   onClick={() => setIsCreatingCommunity(true)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-colors text-violet-400 group mt-4"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-colors text-indigo-300 group mt-4"
                 >
-                  <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 group-hover:bg-violet-500/20 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/20 transition-colors">
                     <PlusSquare size={20} />
                   </div>
                   <span className="font-medium text-[15px]">Create Community</span>
-                </button>
+                </motion.button>
               </motion.div>
             ) : activeTab === 'communities' && selectedCommunityId !== null ? (
               <motion.div
@@ -287,12 +302,15 @@ export default function MessagesPage() {
                 exit={{ opacity: 0, x: -20 }}
                 className="h-full flex flex-col"
               >
-                <button 
+                <motion.button 
                   onClick={() => setSelectedCommunityId(null)}
+                  whileHover={{ x: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 24 }}
                   className="flex items-center gap-2 px-4 py-3 text-[13px] font-medium text-white/50 hover:text-white hover:bg-white/[0.03] border-b border-white/[0.08] transition-colors shrink-0"
                 >
                   <ArrowLeft size={16} /> Back to Folders
-                </button>
+                </motion.button>
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <ChannelSidebar 
                     channels={channels}
@@ -337,43 +355,49 @@ export default function MessagesPage() {
                     const otherMember = ch.channel_members?.find(m => m.profiles?.id !== user.id)?.profiles;
                     const isActive = selectedChannel?.id === ch.id;
                     return (
-                      <div 
+                      <motion.button
                         key={ch.id} 
                         onClick={() => setSelectedChannel(ch)} 
-                        className={`flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl cursor-pointer transition-all duration-200 group ${isActive ? 'bg-white/20 shadow-sm border border-white/10' : 'hover:bg-white/10 border border-transparent'}`}
+                        whileHover={{ x: 3 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                        className={`w-full flex items-center gap-3 p-3 mb-1 mx-2 rounded-xl cursor-pointer transition-all duration-200 group text-left ${isActive ? 'bg-indigo-600/20 shadow-sm border border-indigo-500/20' : 'hover:bg-white/[0.05] border border-transparent'}`}
                         onContextMenu={(e) => handleChannelCtx(e, ch)}
                       >
                         {otherMember?.avatar_url ? (
                           <img src={otherMember.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
                         ) : (
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${isActive ? 'bg-violet-500' : 'bg-white/10'}`}>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${isActive ? 'bg-indigo-500' : 'bg-white/10'}`}>
                             {(otherMember?.username || 'U').charAt(0).toUpperCase()}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-baseline mb-0.5">
-                            <span className={`font-semibold text-[15px] truncate ${isActive ? 'text-violet-300' : 'text-white/90 group-hover:text-white'}`}>
+                            <span className={`font-semibold text-[15px] truncate ${isActive ? 'text-indigo-300' : 'text-white/90 group-hover:text-white'}`}>
                               {otherMember?.username || 'Unknown User'}
                             </span>
                           </div>
-                          <p className={`text-[13px] truncate ${isActive ? 'text-violet-200/70' : 'text-white/50 group-hover:text-white/70'}`}>
+                          <p className={`text-[13px] truncate ${isActive ? 'text-indigo-200/70' : 'text-white/50 group-hover:text-white/70'}`}>
                             Direct Message
                           </p>
                         </div>
-                      </div>
+                  </motion.button>
                     );
                   })}
                 </div>
                 
-                <button 
+                <motion.button 
                   onClick={() => setIsCreatingDM(true)}
-                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-colors text-violet-400 group shrink-0"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.05] cursor-pointer transition-colors text-indigo-300 group shrink-0"
                 >
-                  <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 group-hover:bg-violet-500/20 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/20 transition-colors">
                     <PlusSquare size={20} />
                   </div>
                   <span className="font-medium text-[15px]">New Message</span>
-                </button>
+                </motion.button>
               </motion.div>
             )}
           </AnimatePresence>

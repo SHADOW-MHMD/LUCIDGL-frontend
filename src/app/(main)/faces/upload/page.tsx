@@ -145,7 +145,7 @@ export default function FacesUploadPage() {
           </div>
         </div>
 
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_300px] items-start">
           <form onSubmit={handleSubmit} className="bg-[#0d0d1a]/75 border border-white/[0.08] rounded-[1.75rem] p-5 md:p-6 shadow-2xl space-y-6 backdrop-blur-xl">
               {success ? (
                 <div className="flex flex-col items-center justify-center p-10 text-center animate-in fade-in zoom-in duration-500">
@@ -247,7 +247,7 @@ export default function FacesUploadPage() {
               )}
           </form>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
+          <div className="space-y-4">
             <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-xl">
               <UploadRobotHelper
                 status={robotStatus}
