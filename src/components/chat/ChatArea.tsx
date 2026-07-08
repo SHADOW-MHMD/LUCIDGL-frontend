@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { env } from "@/lib/env";
 import { useGamification } from "@/hooks/useGamification";
 import { Flame } from "lucide-react";
+import Link from "next/link";
 
 interface MemberWithRole extends Profile { role: string; }
 
@@ -477,9 +478,11 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
                 onContextMenu={e => handleMsgContextMenu(e, msg)}
               >
                 {!isConsecutive && !isMe ? (
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shrink-0 overflow-hidden mt-auto mb-1 ${gData?.glowClass ? `border-2 ${gData.glowClass}` : ''}`}>
-                    {msg.profiles?.avatar_url && <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
-                  </div>
+                  <Link href={`/user/${msg.user_id}`}>
+                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 shrink-0 overflow-hidden mt-auto mb-1 ${gData?.glowClass ? `border-2 ${gData.glowClass}` : ''} hover:scale-110 transition-transform`}>
+                      {msg.profiles?.avatar_url && <img src={msg.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                  </Link>
                 ) : !isConsecutive && isMe ? (
                    <div className="w-9 shrink-0" /> 
                 ) : (
@@ -490,7 +493,9 @@ export function ChatArea({ channelId, channelName, type, communityRole, avatarUr
                   {!isConsecutive && !isMe && type === 'community' && (
                     <div className="flex items-center gap-2 mb-1 px-1">
                       <span className="font-medium text-violet-400 text-[13px] flex items-center gap-1">
-                        {msg.profiles?.username || 'Unknown'}
+                        <Link href={`/user/${msg.user_id}`} className="hover:underline">
+                          {msg.profiles?.username || 'Unknown'}
+                        </Link>
                         {gData?.showFlame && <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/20" />}
                       </span>
                       <LevelBadge level={(msg.profiles as any)?.current_level || 0} badgeTier={gData?.dynamicBadge} />

@@ -8,6 +8,7 @@ import { Upload, Download, FileArchive, Smartphone, Loader2, Bot, Sparkles, Pack
 import { motion, AnimatePresence } from "framer-motion";
 import { env } from "@/lib/env";
 import { UploadRobotHelper, UploadStatus } from "@/components/UploadRobotHelper";
+import Link from "next/link";
 
 const apiUrl = env.apiUrl;
 
@@ -378,7 +379,11 @@ export default function CodeHubPage() {
                         <p className="text-white/50 text-xs mt-0.5 truncate">{file.caption}</p>
                       )}
                       <p className="text-white/40 text-xs mt-1">
-                        {file.username ? `@${file.username} · ` : ""}{file.download_count} download{file.download_count !== 1 ? "s" : ""}
+                        {file.username ? (
+                          <>
+                            <Link href={`/user/${file.user_id}`} className="hover:underline">@{file.username}</Link> &middot;{" "}
+                          </>
+                        ) : ""}{file.download_count} download{file.download_count !== 1 ? "s" : ""}
                       </p>
                     </div>
                     <motion.button

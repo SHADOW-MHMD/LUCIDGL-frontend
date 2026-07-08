@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { Crown, Flame, Trophy, Award, Medal } from "lucide-react";
 import { env } from "@/lib/env";
+import Link from "next/link";
 
 interface LeaderboardUser {
   id: string;
@@ -121,28 +122,30 @@ export default function LeaderboardPage() {
                 </div>
 
                 {/* Avatar */}
-                <div
-                  className={`rounded-full p-1 ${
-                    isRank1
-                      ? "bg-gradient-to-b from-yellow-300 to-yellow-600 w-24 h-24 shadow-[0_0_30px_rgba(250,204,21,0.4)]"
-                      : rank === 2
-                      ? "bg-gradient-to-b from-slate-200 to-slate-400 w-20 h-20"
-                      : "bg-gradient-to-b from-orange-400 to-orange-700 w-20 h-20"
-                  } mb-4 relative flex items-center justify-center`}
-                >
-                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="font-bold text-white text-xl">{user.username.charAt(0).toUpperCase()}</span>
-                    )}
+                <Link href={`/user/${user.id}`} className="hover:scale-105 transition-transform z-20">
+                  <div
+                    className={`rounded-full p-1 ${
+                      isRank1
+                        ? "bg-gradient-to-b from-yellow-300 to-yellow-600 w-24 h-24 shadow-[0_0_30px_rgba(250,204,21,0.4)]"
+                        : rank === 2
+                        ? "bg-gradient-to-b from-slate-200 to-slate-400 w-20 h-20"
+                        : "bg-gradient-to-b from-orange-400 to-orange-700 w-20 h-20"
+                    } mb-4 relative flex items-center justify-center`}
+                  >
+                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="font-bold text-white text-xl">{user.username.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className={`absolute -bottom-2 px-3 py-0.5 rounded-full text-xs font-bold ${
+                      isRank1 ? 'bg-yellow-500 text-black' : rank === 2 ? 'bg-slate-300 text-black' : 'bg-orange-600 text-white'
+                    }`}>
+                      #{rank}
+                    </div>
                   </div>
-                  <div className={`absolute -bottom-2 px-3 py-0.5 rounded-full text-xs font-bold ${
-                    isRank1 ? 'bg-yellow-500 text-black' : rank === 2 ? 'bg-slate-300 text-black' : 'bg-orange-600 text-white'
-                  }`}>
-                    #{rank}
-                  </div>
-                </div>
+                </Link>
 
                 {/* Podium Block */}
                 <div
@@ -150,7 +153,7 @@ export default function LeaderboardPage() {
                     isRank1 ? "h-48 border-t-yellow-400/50 shadow-[0_-5px_25px_rgba(250,204,21,0.15)]" : rank === 2 ? "h-36 border-t-slate-400/50" : "h-28 border-t-orange-600/50"
                   }`}
                 >
-                  <span className="font-bold text-white truncate w-full text-center px-2">@{user.username}</span>
+                  <Link href={`/user/${user.id}`} className="font-bold text-white truncate w-full text-center px-2 hover:underline">@{user.username}</Link>
                   <span className="text-white/50 text-xs mt-1">{user.xp_points} XP</span>
                 </div>
               </motion.div>
@@ -197,14 +200,16 @@ export default function LeaderboardPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/[0.08]">
-                            {user.avatar_url ? (
-                              <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="font-bold text-white/70 text-sm">{user.username.charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <span className="font-bold text-white text-[15px]">@{user.username}</span>
+                          <Link href={`/user/${user.id}`}>
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/[0.08] hover:scale-110 transition-transform">
+                              {user.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="font-bold text-white/70 text-sm">{user.username.charAt(0).toUpperCase()}</span>
+                              )}
+                            </div>
+                          </Link>
+                          <Link href={`/user/${user.id}`} className="font-bold text-white text-[15px] hover:underline">@{user.username}</Link>
                         </div>
                       </td>
                       <td className="py-4 px-6">
