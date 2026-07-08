@@ -15,6 +15,9 @@ interface UserProfile {
   bio?: string;
   avatar_url?: string;
   nitro_tier?: number;
+  twitter_url?: string;
+  github_url?: string;
+  website_url?: string;
 }
 
 const GlassToggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -37,7 +40,9 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -50,29 +55,16 @@ export default function SettingsPage() {
     animations: true,
     lucidRobots: true,
   });
-  
-  const [gamificationToggles, setGamificationToggles] = useState({
-    showBadges: true,
-    displayRank: true,
-  });
 
   useEffect(() => {
     const app = localStorage.getItem("settings_appearance");
-    const gam = localStorage.getItem("settings_gamification");
     if (app) setAppearanceToggles(JSON.parse(app));
-    if (gam) setGamificationToggles(JSON.parse(gam));
   }, []);
 
   const toggleAppearance = (key: keyof typeof appearanceToggles) => {
     const newToggles = { ...appearanceToggles, [key]: !appearanceToggles[key] };
     setAppearanceToggles(newToggles);
     localStorage.setItem("settings_appearance", JSON.stringify(newToggles));
-  };
-
-  const toggleGamification = (key: keyof typeof gamificationToggles) => {
-    const newToggles = { ...gamificationToggles, [key]: !gamificationToggles[key] };
-    setGamificationToggles(newToggles);
-    localStorage.setItem("settings_gamification", JSON.stringify(newToggles));
   };
 
   useEffect(() => {
@@ -90,7 +82,9 @@ export default function SettingsPage() {
           const p: UserProfile = data.profile ?? data;
           setProfile(p);
           setBio(p.bio ?? "");
-          setAvatarUrl(p.avatar_url ?? "");
+          setTwitterUrl(p.twitter_url ?? "");
+          setGithubUrl(p.github_url ?? "");
+          setWebsiteUrl(p.website_url ?? "");
         }
       } catch {
         // silent
@@ -115,7 +109,12 @@ export default function SettingsPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ bio, avatar_url: avatarUrl }),
+        body: JSON.stringify({ 
+          bio, 
+          twitter_url: twitterUrl,
+          github_url: githubUrl,
+          website_url: websiteUrl
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Save failed" }));
@@ -144,7 +143,6 @@ export default function SettingsPage() {
   const tabs = [
     { id: "account", label: "Account", icon: User2 },
     { id: "appearance", label: "Appearance", icon: Monitor },
-    { id: "gamification", label: "Gamification", icon: Trophy },
   ];
 
   return (
@@ -203,21 +201,9 @@ export default function SettingsPage() {
                 )}
 
                 <div className="flex items-center gap-4">
-                  {avatarUrl ? (
-                    <motion.img
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                      src={avatarUrl}
-                      alt="Avatar preview"
-                      className="w-16 h-16 rounded-full object-cover border-2 border-white/[0.12]"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-white/[0.06] border-2 border-white/[0.12] flex items-center justify-center">
-                      <User2 size={28} className="text-white/30" />
-                    </div>
-                  )}
+                  <div className="w-16 h-16 rounded-full bg-white/[0.06] border-2 border-white/[0.12] flex items-center justify-center text-2xl font-bold text-white/50">
+                    {(profile?.username ?? user.email?.split("@")[0] ?? "U")[0].toUpperCase()}
+                  </div>
                   <div>
                     <p className="text-white font-semibold">{profile?.username ?? user.email?.split("@")[0]}</p>
                     <p className="text-white/35 text-xs">{user.email}</p>
@@ -225,15 +211,42 @@ export default function SettingsPage() {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
+                        <Link2 size={12} /> Twitter / X
+                      </label>
+                      <input
+                        type="text"
+                        value={twitterUrl}
+                        onChange={(e) => setTwitterUrl(e.target.value)}
+                        placeholder="https://x.com/username"
+                        className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
+                        <Link2 size={12} /> GitHub
+                      </label>
+                      <input
+                        type="text"
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        placeholder="https://github.com/username"
+                        className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all"
+                      />
+                    </div>
+                  </div>
+                  
                   <div className="space-y-1.5">
                     <label className="text-white/60 text-xs font-medium uppercase tracking-wider flex items-center gap-1.5">
-                      <Link2 size={12} /> Avatar URL
+                      <Link2 size={12} /> Personal Website
                     </label>
                     <input
                       type="text"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="e.g. https://imgur.com/avatar.png"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://yourdomain.com"
                       className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all"
                     />
                   </div>
@@ -297,20 +310,30 @@ export default function SettingsPage() {
                 <h3 className="text-2xl font-bold text-white tracking-tight mb-6">Appearance</h3>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl opacity-60">
                     <div>
-                      <p className="text-white font-medium">Dark Mode</p>
+                      <p className="text-white font-medium flex items-center gap-2">
+                        Dark Mode
+                        <span className="text-[9px] uppercase tracking-wider bg-white/10 text-white/60 px-2 py-0.5 rounded-full">Coming Soon</span>
+                      </p>
                       <p className="text-white/50 text-sm">Use deep dark theme across the app.</p>
                     </div>
-                    <GlassToggle checked={appearanceToggles.darkMode} onChange={() => toggleAppearance('darkMode')} />
+                    <div className="pointer-events-none">
+                      <GlassToggle checked={true} onChange={() => {}} />
+                    </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl opacity-60">
                     <div>
-                      <p className="text-white font-medium">Fluid Animations</p>
+                      <p className="text-white font-medium flex items-center gap-2">
+                        Fluid Animations
+                        <span className="text-[9px] uppercase tracking-wider bg-white/10 text-white/60 px-2 py-0.5 rounded-full">Coming Soon</span>
+                      </p>
                       <p className="text-white/50 text-sm">Enable framer-motion micro-interactions.</p>
                     </div>
-                    <GlassToggle checked={appearanceToggles.animations} onChange={() => toggleAppearance('animations')} />
+                    <div className="pointer-events-none">
+                      <GlassToggle checked={true} onChange={() => {}} />
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/[0.08] backdrop-blur-md">
@@ -324,29 +347,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "gamification" && (
-              <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-white tracking-tight mb-6">Gamification</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
-                    <div>
-                      <p className="text-white font-medium">Show Badges</p>
-                      <p className="text-white/50 text-sm">Display your earned badges in chat.</p>
-                    </div>
-                    <GlassToggle checked={gamificationToggles.showBadges} onChange={() => toggleGamification('showBadges')} />
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl">
-                    <div>
-                      <p className="text-white font-medium">Display Rank</p>
-                      <p className="text-white/50 text-sm">Show your global rank on your profile card.</p>
-                    </div>
-                    <GlassToggle checked={gamificationToggles.displayRank} onChange={() => toggleGamification('displayRank')} />
-                  </div>
-                </div>
-              </div>
-            )}
+
           </motion.div>
         )}
       </div>
