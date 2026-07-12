@@ -3,12 +3,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Analytics } from "@/types";
-import { Eye, Download, ThumbsUp, Loader2, BarChart3, Activity, Zap } from "lucide-react";
+import { Eye, Download, ThumbsUp, BarChart3, Activity, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { env } from "@/lib/env";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  RadialBarChart,
+  RadialBar,
+  CartesianGrid,
+} from "recharts";
 
 const apiUrl = env.apiUrl;
 
+// ─── AnimatedNumber — logic 100% identical ───────────────────────────────────
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
@@ -30,6 +42,29 @@ function AnimatedNumber({ value }: { value: number }) {
   return <>{display.toLocaleString()}</>;
 }
 
+// ─── Custom Tooltip for BarChart ─────────────────────────────────────────────
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/[0.12] bg-black/80 backdrop-blur-md px-4 py-3 text-sm shadow-xl">
+      <p className="text-white/50 uppercase tracking-widest text-[10px] mb-1">{label}</p>
+      <p className="text-white font-bold text-base">{payload[0].value.toLocaleString()}</p>
+    </div>
+  );
+}
+
+// ─── Skeleton card ────────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-8 flex flex-col gap-4">
+      <div className="skeleton h-4 w-24 rounded-lg" />
+      <div className="skeleton h-12 w-32 rounded-xl" />
+      <div className="skeleton h-3 w-20 rounded-lg" />
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,25 +96,16 @@ export default function AnalyticsPage() {
           label: "Profile Impressions",
           value: analytics.impressions,
           icon: Eye,
-          color: "text-indigo-400",
-          bg: "bg-indigo-500/10",
-          border: "border-indigo-500/20"
         },
         {
           label: "File Downloads",
           value: analytics.downloads,
           icon: Download,
-          color: "text-cyan-400",
-          bg: "bg-cyan-500/10",
-          border: "border-cyan-500/20"
         },
         {
           label: "Upvotes Received",
           value: analytics.upvotes_received,
           icon: ThumbsUp,
-          color: "text-violet-400",
-          bg: "bg-violet-500/10",
-          border: "border-violet-500/20"
         },
       ]
     : [];
@@ -95,166 +121,184 @@ export default function AnalyticsPage() {
   const peakValue = Math.max(...chartData.map((item) => item.value), 1);
   const totalValue = chartData.reduce((sum, item) => sum + item.value, 0);
 
+  // Recharts bar data
+  const barData = chartData.map((item) => ({ name: item.label, value: item.value }));
+
+  // Engagement score: normalised 0-100 based on total vs a soft ceiling of peakValue*3
+  const engagementScore = Math.min(Math.round((totalValue / Math.max(peakValue * 3, 1)) * 100), 100);
+  const radialData = [{ name: "Engagement", value: engagementScore, fill: "var(--accent-color)" }];
+
+  // ─── Framer variants ────────────────────────────────────────────────────────
+  const containerVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
+  };
+  const cardVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+  };
+
   return (
     <motion.div
-      className="min-h-screen pt-28 pb-16 px-4"
+      className="bg-black min-h-screen"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
+      <div className="max-w-5xl mx-auto px-8 py-16 space-y-12">
+
+        {/* ── Header ── */}
         <motion.div
-          className="text-center"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="flex items-center gap-3"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-white/65 text-xs uppercase tracking-[0.35em] mb-4">
-            <BarChart3 size={14} />
-            Live signals
+          <div className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+            <BarChart3 size={20} strokeWidth={1.5} className="text-[var(--accent-color)]" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">Analytics</h1>
-          <p className="text-white/50 mt-3 text-sm md:text-base">Your performance at a glance, with a little more visual rhythm.</p>
+          <div>
+            <h1 className="text-4xl font-black tracking-tight text-white leading-none">Analytics</h1>
+            <p className="text-white/40 text-sm mt-1">Your performance at a glance.</p>
+          </div>
         </motion.div>
 
-        {loading ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="text-indigo-400/40 animate-spin" size={40} />
+        {/* ── Loading ── */}
+        {loading && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+            <div className="skeleton h-64 rounded-2xl" />
+            <div className="skeleton h-52 rounded-2xl" />
           </div>
-        ) : error ? (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center text-red-400 text-sm">
-            {error}
+        )}
+
+        {/* ── Error ── */}
+        {!loading && error && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <AlertCircle size={48} strokeWidth={1.5} className="text-red-500/50" />
+            <p className="text-red-400/70 text-sm">{error}</p>
           </div>
-        ) : (
-          <div className="space-y-6">
+        )}
+
+        {/* ── Content ── */}
+        {!loading && !error && analytics && (
+          <div className="space-y-8">
+
+            {/* Stat cards */}
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-3 gap-5"
+              variants={containerVariants}
               initial="hidden"
               animate="visible"
-              variants={{
-                hidden: {},
-                visible: {
-                  transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-                }
-              }}
             >
-              {stats.map(({ label, value, icon: Icon, color, bg, border }) => (
+              {stats.map(({ label, value, icon: Icon }) => (
                 <motion.div
                   key={label}
-                  variants={{
-                    hidden: { opacity: 0, y: 24 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-                  }}
+                  variants={cardVariants}
                   whileHover={{
                     y: -6,
-                    transition: { type: "spring", stiffness: 300, damping: 20 }
+                    transition: { type: "spring", stiffness: 320, damping: 22 },
                   }}
-                  className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-[1.5rem] p-6 flex flex-col items-center text-center hover:bg-white/[0.04] hover:border-indigo-500/20 transition-colors duration-300 cursor-default"
+                  className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-8 flex flex-col gap-4 hover:border-[var(--accent-color)]/30 hover:bg-white/[0.05] transition-colors duration-300 cursor-default"
                 >
-                  <div className={`p-3 rounded-xl ${bg} border ${border} mb-4`}>
-                    <Icon size={24} className={color} />
-                  </div>
+                  <Icon size={20} strokeWidth={1.5} className="text-[var(--accent-color)]" />
                   <motion.span
-                    className="text-5xl font-bold text-white tabular-nums"
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    className="text-5xl font-black text-white tabular-nums"
+                    initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
                   >
                     <AnimatedNumber value={value} />
                   </motion.span>
-                  <span className="text-white/40 text-xs mt-2 font-medium uppercase tracking-wider">
+                  <span className="text-white/40 text-sm uppercase tracking-widest font-medium">
                     {label}
                   </span>
                 </motion.div>
               ))}
             </motion.div>
 
-            <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] items-start">
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.25 }}
-                className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] p-6 backdrop-blur-xl shadow-[0_18px_70px_rgba(0,0,0,0.25)]"
-              >
-                <div className="flex items-center justify-between gap-4 mb-6">
-                  <div>
-                    <p className="text-white font-semibold flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-cyan-300" />
-                      Engagement mix
-                    </p>
-                    <p className="text-white/45 text-sm mt-1">A simple read on where the momentum is landing.</p>
-                  </div>
-                  <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-300 text-xs font-semibold">
-                    Total {totalValue.toLocaleString()}
-                  </div>
-                </div>
+            {/* BarChart */}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.3 }}
+              className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-8"
+            >
+              <div className="flex items-center gap-2 mb-6">
+                <Activity size={16} strokeWidth={1.5} className="text-[var(--accent-color)]" />
+                <p className="text-white font-semibold text-sm">Engagement mix</p>
+                <span className="ml-auto rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-white/40 text-xs font-medium">
+                  Total {totalValue.toLocaleString()}
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={barData} barSize={40} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                    tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                  <Bar dataKey="value" fill="var(--accent-color)" radius={[6, 6, 0, 0]} opacity={0.9} />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
 
-                <div className="space-y-4">
-                  {chartData.map((item, index) => {
-                    const share = peakValue === 0 ? 0 : Math.max((item.value / peakValue) * 100, 12);
-                    return (
-                      <div key={item.label} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-white/70">{item.label}</span>
-                          <span className="text-white font-semibold tabular-nums">{item.value.toLocaleString()}</span>
-                        </div>
-                        <div className="h-3 rounded-full bg-white/[0.05] overflow-hidden border border-white/[0.05]">
-                          <motion.div
-                            className={`h-full rounded-full bg-gradient-to-r ${item.color}`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${share}%` }}
-                            transition={{ duration: 0.8, delay: 0.25 + index * 0.08, ease: "easeOut" }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+            {/* RadialBarChart — engagement score */}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.38 }}
+              className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-10"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-sm mb-1">Overall engagement score</p>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  A normalised read on how your three signals compare to your peak metric. The arc fills as your totals climb relative to your best-performing signal.
+                </p>
+                <div className="mt-5 flex items-end gap-2">
+                  <span className="text-5xl font-black text-white tabular-nums">{engagementScore}</span>
+                  <span className="text-white/30 text-lg font-medium mb-1">/ 100</span>
                 </div>
-              </motion.div>
+                <p className="text-white/30 text-xs uppercase tracking-widest mt-1">Engagement index</p>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.32 }}
-                className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] p-6 backdrop-blur-xl shadow-[0_18px_70px_rgba(0,0,0,0.25)] space-y-5"
-              >
-                <div className="flex items-center gap-2 text-white font-semibold">
-                  <Zap className="w-4 h-4 text-violet-300" />
-                  Momentum notes
-                </div>
+              <div className="shrink-0">
+                <ResponsiveContainer width={180} height={180}>
+                  <RadialBarChart
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={54}
+                    outerRadius={82}
+                    startAngle={210}
+                    endAngle={-30}
+                    data={radialData}
+                    barSize={14}
+                  >
+                    <RadialBar
+                      dataKey="value"
+                      background={{ fill: "rgba(255,255,255,0.04)" }}
+                      cornerRadius={8}
+                      data={radialData}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  {chartData.map((item) => {
-                    const ratio = peakValue === 0 ? 0 : item.value / peakValue;
-                    return (
-                      <div key={item.label} className="rounded-2xl border border-white/[0.08] bg-black/20 p-3 text-center">
-                        <div className={`mx-auto mb-3 h-20 w-3 rounded-full overflow-hidden bg-white/[0.06]`}>
-                          <motion.div
-                            className={`h-full rounded-full bg-gradient-to-t ${item.color}`}
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(ratio * 100, 8)}%` }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
-                          />
-                        </div>
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-white/35">{item.label}</p>
-                        <p className="text-white font-semibold text-sm mt-1">{item.value.toLocaleString()}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-white/60">Best performing signal</span>
-                    <span className="text-cyan-300 font-semibold">{chartData.find((item) => item.value === peakValue)?.label ?? "None"}</span>
-                  </div>
-                  <p className="text-white/45 text-sm leading-relaxed">
-                    The bars here are derived from your live counts, so the layout stays honest even when the numbers get weird.
-                  </p>
-                </div>
-              </motion.div>
-            </div>
           </div>
         )}
 

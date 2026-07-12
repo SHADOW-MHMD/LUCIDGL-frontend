@@ -1,4 +1,4 @@
-import Navigation from "@/components/Navigation";
+import DesktopNavigation from "@/components/desktop/Navigation";
 
 export default function MainLayout({
   children,
@@ -7,8 +7,8 @@ export default function MainLayout({
 }>) {
   return (
     <>
-      <Navigation />
-      <main className="pt-20 pb-24 px-4 max-w-5xl mx-auto">
+      <DesktopNavigation />
+      <main className="min-h-screen pb-28">
         {children}
       </main>
     </>

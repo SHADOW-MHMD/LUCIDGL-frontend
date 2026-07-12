@@ -1,47 +1,138 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════
+   VERCEL-STYLE DESIGN SYSTEM — DARK FOREVER
+   ═══════════════════════════════════════════════ */
+
 :root {
-  --background: #0a0a0f;
-  --surface: #0d0d1a;
-  --foreground: #f1f5f9;
-  --muted: rgba(241,245,249,0.5);
-  --border: rgba(255,255,255,0.08);
-  --accent-primary: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-secondary: #22d3ee;
+  /* Core — locked dark */
+  --background: #000000;
+  --surface-1: #0a0a0a;
+  --surface-2: #111111;
+  --surface-3: #1a1a1a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+
+  /* Accent — Violet default */
+  --accent-color: #8b5cf6;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+  --accent-glow-strong: rgba(139, 92, 246, 0.3);
+  --accent-subtle: rgba(139, 92, 246, 0.1);
 }
 
+/* ═══════════════════ ACCENT THEMES ═══════════════════ */
+[data-theme="theme-violet"] {
+  --accent-color: #8b5cf6;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+  --accent-glow-strong: rgba(139, 92, 246, 0.3);
+  --accent-subtle: rgba(139, 92, 246, 0.1);
+}
+[data-theme="theme-emerald"] {
+  --accent-color: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+  --accent-glow-strong: rgba(16, 185, 129, 0.3);
+  --accent-subtle: rgba(16, 185, 129, 0.1);
+}
+[data-theme="theme-cyan"] {
+  --accent-color: #06b6d4;
+  --accent-glow: rgba(6, 182, 212, 0.15);
+  --accent-glow-strong: rgba(6, 182, 212, 0.3);
+  --accent-subtle: rgba(6, 182, 212, 0.1);
+}
+[data-theme="theme-rose"] {
+  --accent-color: #f43f5e;
+  --accent-glow: rgba(244, 63, 94, 0.15);
+  --accent-glow-strong: rgba(244, 63, 94, 0.3);
+  --accent-subtle: rgba(244, 63, 94, 0.1);
+}
+
+/* ═══════════════════ TAILWIND THEME BRIDGE ═══════════════════ */
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-foreground: var(--text-primary);
+  --color-accent: var(--accent-color);
 }
 
-* {
+/* ═══════════════════ BASE RESET ═══════════════════ */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ═══════════════════ SCROLLBAR ═══════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ═══════════════════ SKELETON SHIMMER ═══════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
 
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 8px;
+}
+
+/* ═══════════════════ ACCENT UTILITIES ═══════════════════ */
+.accent-text   { color: var(--accent-color); }
+.accent-bg     { background-color: var(--accent-color); }
+.accent-border { border-color: var(--accent-color); }
+.accent-glow-box { box-shadow: 0 0 24px var(--accent-glow-strong); }
+.accent-ring   { box-shadow: 0 0 0 1px var(--accent-color); }
+
+/* ═══════════════════ GLASS CARD ═══════════════════ */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+.glass-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
+}
+
+/* ═══════════════════ NITRO BADGE (keep legacy) ═══════════════════ */
 @keyframes nitroShimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
@@ -56,10 +147,18 @@ body {
 }
 .nitro-border {
   border-color: #ffd700;
-  box-shadow: 0 0 16px 2px rgba(255,215,0,0.18);
   animation: nitroPulse 2s cubic-bezier(0.4,0,0.6,1) infinite;
 }
 @keyframes nitroPulse {
   0%,100% { box-shadow: 0 0 16px 2px rgba(255,215,0,0.18); }
   50%      { box-shadow: 0 0 28px 6px rgba(255,215,0,0.38); }
+}
+
+/* ═══════════════════ PAGE TRANSITION ═══════════════════ */
+.page-enter {
+  animation: pageEnter 0.2s ease-out forwards;
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

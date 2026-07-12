@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "next-themes";
 
-
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "LUCID-GL Engine",
-  description: "Next-gen multi-agent platform with Glassmorphism aesthetic.",
+  description: "Next-gen multi-agent platform — dark, fast, powerful.",
 };
 
 export default function RootLayout({
@@ -17,12 +21,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-slate-950 text-white min-h-screen relative overflow-x-hidden`}>
-        <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950"></div>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans bg-black text-white min-h-screen relative overflow-x-hidden`}>
+        <ThemeProvider
+          attribute="data-theme"
+          defaultTheme="theme-violet"
+          themes={["theme-violet", "theme-emerald", "theme-cyan", "theme-rose"]}
+          storageKey="lucidgl-accent-theme"
+          enableSystem={false}
+        >
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
